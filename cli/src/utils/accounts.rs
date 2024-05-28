@@ -87,7 +87,7 @@ pub async fn create_aze_game_account(player_account_ids: Vec<u64>, small_blind: 
         let target_account_id = AccountId::try_from(player_account_ids[i]).unwrap();
         println!("Target account id {:?}", target_account_id);
 
-        let input_cards = [cards[i], cards[i + 1]];
+        let input_cards = [cards[2 * i], cards[2 * i + 1]];
         let sendcard_txn_data = SendCardTransactionData::new(
             Asset::Fungible(fungible_asset),
             sender_account_id,
