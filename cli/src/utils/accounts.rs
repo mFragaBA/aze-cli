@@ -8,7 +8,7 @@ use aze_lib::client::{
     AzeTransactionTemplate,
     SendCardTransactionData,
 };
-use aze_lib::constants::BUY_IN_AMOUNT;
+use aze_lib::constants::{ SMALL_BUY_IN_AMOUNT, BUY_IN_AMOUNT, NO_OF_PLAYERS, FIRST_PLAYER_INDEX, HIGHEST_BET, PLAYER_INITIAL_BALANCE };
 use aze_lib::notes::{ consume_notes, mint_note };
 use aze_lib::executor::execute_tx_and_sync;
 use aze_lib::storage::GameStorageSlotData;
@@ -34,9 +34,9 @@ use miden_client::client::{
     transactions::transaction_request::TransactionTemplate,
 };
 
-pub async fn create_aze_game_account() {
+pub async fn create_aze_game_account(player_account_ids: Vec<u64>, small_blind: u8) {
     let mut client: AzeClient = create_aze_client();
-    let slot_data = GameStorageSlotData::new(0, 0, 0, 0, 0, 0);
+    let slot_data = GameStorageSlotData::new(small_blind, BUY_IN_AMOUNT as u8, NO_OF_PLAYERS, FIRST_PLAYER_INDEX, HIGHEST_BET, PLAYER_INITIAL_BALANCE);
 
     let (faucet_account, _) = client
         .new_account(AccountTemplate::FungibleFaucet {
@@ -48,19 +48,7 @@ pub async fn create_aze_game_account() {
         .unwrap();
 
     let faucet_account_id = faucet_account.id();
-    let fungible_asset = FungibleAsset::new(faucet_account_id, BUY_IN_AMOUNT).unwrap();
-
-    let (player_account, _) = client
-        .new_game_account(
-            AzeAccountTemplate::PlayerAccount {
-                mutable_code: false,
-                storage_mode: AccountStorageMode::Local, 
-            },
-            None
-        )
-        .unwrap();
-
-    let player_account_ids = vec![player_account.id()];
+    let fungible_asset = FungibleAsset::new(faucet_account_id, SMALL_BUY_IN_AMOUNT as u64).unwrap();
 
     let (game_account, _) = client
         .new_game_account(

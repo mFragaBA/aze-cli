@@ -15,10 +15,7 @@ struct Args {
 enum Commands {
     Init {
         #[arg(short, long, num_args = NO_OF_PLAYERS as usize)]
-        player: Vec<String>,
-        
-        #[arg(short, long, default_value_t = 2 * SMALL_BLIND_AMOUNT)]
-        big_blind: u8,
+        player: Vec<u64>,
         
         #[arg(short, long, default_value_t = SMALL_BLIND_AMOUNT)]
         small_blind: u8,
@@ -30,9 +27,9 @@ async fn main() {
     let args = Args::parse();
 
     match args.cmd {
-        Commands::Init { player, big_blind, small_blind } => {
-            
-            create_aze_game_account().await;
+        Commands::Init { player, small_blind } => {
+
+            create_aze_game_account(player, small_blind).await;
         }
     }
 }
