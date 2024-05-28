@@ -1,6 +1,8 @@
-use clap::{Parser, Subcommand};
+mod utils;
+use utils::{ accounts::create_aze_game_account };
 use aze_lib::constants::SMALL_BLIND_AMOUNT;
 use aze_lib::constants::NO_OF_PLAYERS;
+use clap::{Parser, Subcommand};
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -23,21 +25,14 @@ enum Commands {
     },
 }
 
-fn main() {
+#[tokio::main]
+async fn main() {
     let args = Args::parse();
 
     match args.cmd {
         Commands::Init { player, big_blind, small_blind } => {
-
-            if !player.is_empty() {
-                for id in player {
-                    println!("Player ID: {}", id);
-                }
-            }
-
-            println!("Big Blind: {}", big_blind);
             
-            println!("Small Blind: {}", small_blind);
+            create_aze_game_account().await;
         }
     }
 }

@@ -4,6 +4,10 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-clap = { version = "4.5.4", features = ["derive"] }
 aze-lib = { path = "../lib" }
 aze-types = { path = "../types" }
+clap = { version = "4.5.4", features = ["derive"] }
+miden-client = { version = "0.2.0", features= ["concurrent","testing"] }
+miden-lib = { version = "0.2.0", features= ["concurrent","testing"] }
+miden-objects = { version = "0.2", default-features = false }
+tokio = { version = "1.29", features = ["rt-multi-thread", "net", "macros"] }
