@@ -1,0 +1,44 @@
+# Try to code an easy note script
+
+use.miden::account
+use.miden::note
+use.miden::contracts::wallets::basic->wallet
+use.miden::contracts::poker::poker
+
+proc.receive_cards
+    exec.account::set_item
+    # => [R, V]
+    # drop the root
+    dropw 
+end
+
+begin   
+    dropw
+
+    push.0 exec.note::get_inputs 
+    # => [num_inputs, des_pointer, ...]
+
+    drop mem_loadw
+    # => [CARD, ...]
+
+    push.100 call.receive_cards
+    # => [...]
+
+    # Push next pointer
+    push.1 mem_loadw
+    # => [CARD, ...]
+
+    # Reduce stack size before calling procedure
+    movupw.3 dropw 
+    push.101 call.receive_cards 
+    # => [...]
+
+    padw exec.note::get_assets drop mem_loadw
+    # => [ASSET, ...]
+
+    # load the asset and add it to the account
+    call.wallet::receive_asset
+    # => [...]
+
+    dropw
+end
