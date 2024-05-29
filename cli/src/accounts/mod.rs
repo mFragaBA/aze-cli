@@ -8,7 +8,7 @@ use aze_lib::client::{
     AzeTransactionTemplate,
     SendCardTransactionData,
 };
-use aze_lib::constants::{ SMALL_BUY_IN_AMOUNT, BUY_IN_AMOUNT, NO_OF_PLAYERS, FIRST_PLAYER_INDEX, HIGHEST_BET, PLAYER_INITIAL_BALANCE };
+use aze_lib::constants::{ SMALL_BUY_IN_AMOUNT, NO_OF_PLAYERS, FIRST_PLAYER_INDEX, HIGHEST_BET, PLAYER_INITIAL_BALANCE };
 use aze_lib::notes::{ consume_notes, mint_note };
 use aze_lib::executor::execute_tx_and_sync;
 use aze_lib::storage::GameStorageSlotData;
@@ -34,9 +34,9 @@ use miden_client::client::{
     transactions::transaction_request::TransactionTemplate,
 };
 
-pub async fn create_aze_game_account(player_account_ids: Vec<u64>, small_blind: u8) {
+pub async fn create_aze_game_account(player_account_ids: Vec<u64>, small_blind: u8, buy_in: u64) -> Result<AccountId, AccountCreationError> {
     let mut client: AzeClient = create_aze_client();
-    let slot_data = GameStorageSlotData::new(small_blind, BUY_IN_AMOUNT as u8, NO_OF_PLAYERS, FIRST_PLAYER_INDEX, HIGHEST_BET, PLAYER_INITIAL_BALANCE);
+    let slot_data = GameStorageSlotData::new(small_blind, buy_in as u8, NO_OF_PLAYERS, FIRST_PLAYER_INDEX, HIGHEST_BET, PLAYER_INITIAL_BALANCE);
 
     let (faucet_account, _) = client
         .new_account(AccountTemplate::FungibleFaucet {
@@ -109,4 +109,6 @@ pub async fn create_aze_game_account(player_account_ids: Vec<u64>, small_blind: 
 
         println!("Executed and synced with node");
     }
+
+    Ok(game_account_id)
 }
