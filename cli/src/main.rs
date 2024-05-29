@@ -1,6 +1,6 @@
 mod accounts;
 mod utils;
-use accounts::create_aze_game_account;
+use accounts::{ create_aze_game_account, create_aze_player_account };
 use utils::load_config;
 use aze_lib::constants::{ SMALL_BLIND_AMOUNT, NO_OF_PLAYERS, BUY_IN_AMOUNT };
 use clap::{ ValueEnum, Parser, Subcommand };
@@ -37,6 +37,10 @@ enum Commands {
         #[arg(short, long, value_parser)]
         config: Option<std::path::PathBuf>,
     },
+    Register {
+        #[arg(short, long)]
+        identifier: String,
+    }
 }
 
 #[tokio::main]
@@ -64,6 +68,17 @@ async fn main() {
             
             let game_account_id = create_aze_game_account(player_ids, small_blind_amount, buy_in_amount).await.unwrap();
             println!("Game account created: {:?}", game_account_id);
+        },
+        Commands::Register { identifier } => {
+            let account_creation_response = create_aze_player_account(identifier).await;
+            match account_creation_response {
+                Ok(account_id) => {
+                    println!("Player account created: {:?}", account_id);
+                },
+                Err(e) => {
+                    eprintln!("Error creating player account: {}", e);
+                }
+            }
         }
     }
 }

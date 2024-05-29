@@ -112,3 +112,24 @@ pub async fn create_aze_game_account(player_account_ids: Vec<u64>, small_blind: 
 
     Ok(game_account_id)
 }
+
+pub async fn create_aze_player_account(identifier: String) -> Result<AccountId, AccountCreationError> {
+    use miden_objects::accounts::AccountType;
+    let key_pair = SecretKey::new();
+    let pub_key: PublicKey = key_pair.public_key();
+    let auth_scheme: AuthScheme = AuthScheme::RpoFalcon512 { pub_key };
+
+    // initial seed to create the wallet account
+    let init_seed: [u8; 32] = [
+        95, 113, 209, 94, 84, 105, 250, 242, 223, 203, 216, 124, 22, 159, 14, 132, 215, 85, 183, 204,
+        149, 90, 166, 68, 100, 73, 106, 168, 125, 237, 138, 16,
+    ];
+
+    let (player_account, _) = create_basic_aze_player_account(
+        init_seed,
+        auth_scheme,
+        AccountType::RegularAccountImmutableCode
+    ).unwrap();
+
+    Ok(player_account.id())
+}
