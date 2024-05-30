@@ -29,9 +29,12 @@ use miden_objects::{
     crypto::dsa::rpo_falcon512::{ PublicKey, SecretKey },
     notes::NoteType,
 };
-use miden_client::client::{
-    accounts::{ AccountTemplate, AccountStorageMode },
-    transactions::transaction_request::TransactionTemplate,
+use miden_client::{
+    store::AuthInfo,
+    client::{
+        accounts::{ AccountTemplate, AccountStorageMode },
+        transactions::transaction_request::TransactionTemplate,
+    }
 };
 
 pub async fn create_aze_game_account(player_account_ids: Vec<u64>, small_blind: u8, buy_in: u64) -> Result<AccountId, AccountCreationError> {
@@ -125,11 +128,14 @@ pub async fn create_aze_player_account(identifier: String) -> Result<AccountId, 
         149, 90, 166, 68, 100, 73, 106, 168, 125, 237, 138, 16,
     ];
 
-    let (player_account, _) = create_basic_aze_player_account(
+    let (player_account, seed) = create_basic_aze_player_account(
         init_seed,
         auth_scheme,
         AccountType::RegularAccountImmutableCode
     ).unwrap();
+    
+    let mut client: AzeClient = create_aze_client();
+    client.insert_account(&player_account, Some(seed), &AuthInfo::RpoFalcon512(key_pair));
 
     Ok(player_account.id())
 }
