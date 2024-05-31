@@ -7,7 +7,7 @@ use miden_objects::{
     notes::{
         Note,
         NoteAssets,
-        NoteExecutionMode,
+        NoteExecutionHint,
         NoteInputs,
         NoteMetadata,
         NoteRecipient,
@@ -21,7 +21,7 @@ use miden_objects::{
     Word,
     ZERO,
 };
-use miden_tx::TransactionExecutor;
+use miden_tx::TransactionAuthenticator;
 use miden_client::{
     client::{
         rpc::NodeRpcClient,
@@ -35,8 +35,8 @@ use crate::executor::execute_tx_and_sync;
 use crate::constants::{ BUY_IN_AMOUNT, TRANSFER_AMOUNT };
 use std::rc::Rc;
 
-pub fn create_send_card_note<R: FeltRng, N: NodeRpcClient, S: Store>(
-    client: &mut Client<N, R, S>,
+pub fn create_send_card_note<R: FeltRng, N: NodeRpcClient, S: Store, A: TransactionAuthenticator>(
+    client: &mut Client<N, R, S, A>,
     sender_account_id: AccountId,
     target_account_id: AccountId,
     assets: Vec<Asset>,
@@ -56,7 +56,7 @@ pub fn create_send_card_note<R: FeltRng, N: NodeRpcClient, S: Store>(
     println!("card Inputs: {:?}", inputs);
 
     let note_inputs = NoteInputs::new(inputs).unwrap();
-    let tag = NoteTag::from_account_id(target_account_id, NoteExecutionMode::Local)?;
+    let tag = NoteTag::from_account_id(target_account_id, NoteExecutionHint::Local)?;
     let serial_num = rng.draw_word();
     let aux = ZERO;
 
@@ -68,8 +68,8 @@ pub fn create_send_card_note<R: FeltRng, N: NodeRpcClient, S: Store>(
     Ok(Note::new(vault, metadata, recipient))
 }
 
-pub fn create_play_bet_note<R: FeltRng, N: NodeRpcClient, S: Store>(
-    client: &mut Client<N, R, S>,
+pub fn create_play_bet_note<R: FeltRng, N: NodeRpcClient, S: Store, A: TransactionAuthenticator>(
+    client: &mut Client<N, R, S, A>,
     sender_account_id: AccountId,
     target_account_id: AccountId,
     assets: Vec<Asset>,
@@ -83,7 +83,7 @@ pub fn create_play_bet_note<R: FeltRng, N: NodeRpcClient, S: Store>(
 
     let inputs = vec![Felt::from(player_bet)];
     let note_inputs = NoteInputs::new(inputs).unwrap();
-    let tag = NoteTag::from_account_id(target_account_id, NoteExecutionMode::Local)?;
+    let tag = NoteTag::from_account_id(target_account_id, NoteExecutionHint::Local)?;
     let serial_num = rng.draw_word();
     let aux = ZERO;
 
@@ -94,8 +94,8 @@ pub fn create_play_bet_note<R: FeltRng, N: NodeRpcClient, S: Store>(
     Ok(Note::new(vault, metadata, recipient))
 }
 
-pub fn create_play_raise_note<R: FeltRng, N: NodeRpcClient, S: Store>(
-    client: &mut Client<N, R, S>,
+pub fn create_play_raise_note<R: FeltRng, N: NodeRpcClient, S: Store, A: TransactionAuthenticator>(
+    client: &mut Client<N, R, S, A>,
     sender_account_id: AccountId,
     target_account_id: AccountId,
     assets: Vec<Asset>,
@@ -109,7 +109,7 @@ pub fn create_play_raise_note<R: FeltRng, N: NodeRpcClient, S: Store>(
 
     let inputs = vec![Felt::from(player_bet)];
     let note_inputs = NoteInputs::new(inputs).unwrap();
-    let tag = NoteTag::from_account_id(target_account_id, NoteExecutionMode::Local)?;
+    let tag = NoteTag::from_account_id(target_account_id, NoteExecutionHint::Local)?;
     let serial_num = rng.draw_word();
     let aux = ZERO;
 
@@ -120,8 +120,8 @@ pub fn create_play_raise_note<R: FeltRng, N: NodeRpcClient, S: Store>(
     Ok(Note::new(vault, metadata, recipient))
 }
 
-pub fn create_play_call_note<R: FeltRng, N: NodeRpcClient, S: Store>(
-    client: &mut Client<N, R, S>,
+pub fn create_play_call_note<R: FeltRng, N: NodeRpcClient, S: Store, A: TransactionAuthenticator>(
+    client: &mut Client<N, R, S, A>,
     sender_account_id: AccountId,
     target_account_id: AccountId,
     assets: Vec<Asset>,
@@ -133,7 +133,7 @@ pub fn create_play_call_note<R: FeltRng, N: NodeRpcClient, S: Store>(
     let note_script = client.compile_note_script(script_ast, vec![]).unwrap();
 
     let note_inputs = NoteInputs::new(vec![]).unwrap();
-    let tag = NoteTag::from_account_id(target_account_id, NoteExecutionMode::Local)?;
+    let tag = NoteTag::from_account_id(target_account_id, NoteExecutionHint::Local)?;
     let serial_num = rng.draw_word();
     let aux = ZERO;
 
@@ -144,8 +144,8 @@ pub fn create_play_call_note<R: FeltRng, N: NodeRpcClient, S: Store>(
     Ok(Note::new(vault, metadata, recipient))
 }
 
-pub fn create_play_fold_note<R: FeltRng, N: NodeRpcClient, S: Store>(
-    client: &mut Client<N, R, S>,
+pub fn create_play_fold_note<R: FeltRng, N: NodeRpcClient, S: Store, A: TransactionAuthenticator>(
+    client: &mut Client<N, R, S, A>,
     sender_account_id: AccountId,
     target_account_id: AccountId,
     assets: Vec<Asset>,
@@ -157,7 +157,7 @@ pub fn create_play_fold_note<R: FeltRng, N: NodeRpcClient, S: Store>(
     let note_script = client.compile_note_script(script_ast, vec![]).unwrap();
 
     let note_inputs = NoteInputs::new(vec![]).unwrap();
-    let tag = NoteTag::from_account_id(target_account_id, NoteExecutionMode::Local)?;
+    let tag = NoteTag::from_account_id(target_account_id, NoteExecutionHint::Local)?;
     let serial_num = rng.draw_word();
     let aux = ZERO;
 
@@ -168,8 +168,8 @@ pub fn create_play_fold_note<R: FeltRng, N: NodeRpcClient, S: Store>(
     Ok(Note::new(vault, metadata, recipient))
 }
 
-pub fn create_play_check_note<R: FeltRng, N: NodeRpcClient, S: Store>(
-    client: &mut Client<N, R, S>,
+pub fn create_play_check_note<R: FeltRng, N: NodeRpcClient, S: Store, A: TransactionAuthenticator>(
+    client: &mut Client<N, R, S, A>,
     sender_account_id: AccountId,
     target_account_id: AccountId,
     assets: Vec<Asset>,
@@ -181,7 +181,7 @@ pub fn create_play_check_note<R: FeltRng, N: NodeRpcClient, S: Store>(
     let note_script = client.compile_note_script(script_ast, vec![]).unwrap();
 
     let note_inputs = NoteInputs::new(vec![]).unwrap();
-    let tag = NoteTag::from_account_id(target_account_id, NoteExecutionMode::Local)?;
+    let tag = NoteTag::from_account_id(target_account_id, NoteExecutionHint::Local)?;
     let serial_num = rng.draw_word();
     let aux = ZERO;
 

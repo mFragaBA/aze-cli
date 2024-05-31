@@ -1,4 +1,4 @@
-
+use std::rc::Rc;
 use crate::accounts::{ create_basic_aze_game_account, create_basic_aze_player_account };
 use crate::utils::{ create_aze_store_path, load_config };
 use crate::notes::{
@@ -21,20 +21,21 @@ use miden_client::{
         accounts::{ AccountStorageMode, AccountTemplate },
         get_random_coin,
         rpc::TonicRpcClient,
+        store_authenticator::StoreAuthenticator,
         transactions::transaction_request::TransactionRequest,
         transactions::transaction_request,
         Client,
     },
     config::{ ClientConfig, RpcConfig },
     errors::{ ClientError, NodeRpcClientError },
-    store::{ sqlite_store::SqliteStore, NoteFilter, Store, TransactionFilter, AuthInfo },
+    store::{ sqlite_store::SqliteStore, NoteFilter, Store, TransactionFilter },
 };
 
 use miden_lib::AuthScheme;
 use miden_objects::crypto::rand::FeltRng;
 use miden_objects::notes::NoteType;
 use miden_objects::{
-    accounts::{ Account, AccountData, AccountId, AccountStub, AccountType, AuthData },
+    accounts::{ Account, AccountData, AccountId, AccountStub, AccountType, AuthSecretKey },
     assets::TokenSymbol,
     assembly::ProgramAst,
     crypto::dsa::rpo_falcon512::SecretKey,
@@ -43,11 +44,12 @@ use miden_objects::{
 };
 use miden_objects::crypto::rand::RpoRandomCoin;
 use miden_objects::assets::Asset;
-use miden_tx::{ DataStore, TransactionExecutor };
+use miden_tx::TransactionAuthenticator;
+use miden_tx::utils::Serializable;
 use rand::{ rngs::ThreadRng, Rng };
 use crate::storage::GameStorageSlotData;
 
-pub type AzeClient = Client<TonicRpcClient, RpoRandomCoin, SqliteStore>;
+pub type AzeClient = Client<TonicRpcClient, RpoRandomCoin, SqliteStore, StoreAuthenticator<RpoRandomCoin, SqliteStore>>;
 
 #[derive(Clone)]
 pub struct SendCardTransactionData {
@@ -203,32 +205,32 @@ pub trait AzeGameMethods {
     ) -> Result<(), ClientError>;
     fn build_aze_send_card_tx_request(
         &mut self,
-        // auth_info: AuthInfo,
+        // auth_info: AuthSecretKey,
         transaction_template: AzeTransactionTemplate
     ) -> Result<TransactionRequest, ClientError>;
     fn build_aze_play_bet_tx_request(
         &mut self,
-        // auth_info: AuthInfo,
+        // auth_info: AuthSecretKey,
         transaction_template: AzeTransactionTemplate
     ) -> Result<TransactionRequest, ClientError>;
     fn build_aze_play_raise_tx_request(
         &mut self,
-        // auth_info: AuthInfo,
+        // auth_info: AuthSecretKey,
         transaction_template: AzeTransactionTemplate
     ) -> Result<TransactionRequest, ClientError>;
     fn build_aze_play_call_tx_request(
         &mut self,
-        // auth_info: AuthInfo,
+        // auth_info: AuthSecretKey,
         transaction_template: AzeTransactionTemplate
     ) -> Result<TransactionRequest, ClientError>;
     fn build_aze_play_fold_tx_request(
         &mut self,
-        // auth_info: AuthInfo,
+        // auth_info: AuthSecretKey,
         transaction_template: AzeTransactionTemplate
     ) -> Result<TransactionRequest, ClientError>;
     fn build_aze_play_check_tx_request(
         &mut self,
-        // auth_info: AuthInfo,
+        // auth_info: AuthSecretKey,
         transaction_template: AzeTransactionTemplate
     ) -> Result<TransactionRequest, ClientError>;
     fn new_game_account(
@@ -270,15 +272,18 @@ pub fn create_aze_client() -> AzeClient {
         .unwrap();
     current_dir.push(CLIENT_CONFIG_FILE_NAME);
     let client_config = load_config(current_dir.as_path()).unwrap();
+    let store = {
+        let sqlite_store = SqliteStore::new((&client_config).into()).unwrap();
+        Rc::new(sqlite_store)
+    };
+
     let rng = get_random_coin();
 
-    let rpc_endpoint = client_config.rpc.endpoint.to_string();
-    let store = SqliteStore::new((&client_config).into()).unwrap();
-    let executor_store = SqliteStore::new((&client_config).into()).unwrap();
-    AzeClient::new(TonicRpcClient::new(&rpc_endpoint), rng, store, executor_store, true)
+    let authenticator = StoreAuthenticator::new_with_rng(store.clone(), rng);
+    AzeClient::new(TonicRpcClient::new(&client_config.rpc), rng, store, authenticator, true)
 }
 
-impl<N: NodeRpcClient, R: FeltRng, S: Store> AzeGameMethods for Client<N, R, S> {
+impl<N: NodeRpcClient, R: FeltRng, S: Store, A: TransactionAuthenticator> AzeGameMethods for Client<N, R, S, A> {
     fn store(&self) -> SqliteStore {
         let mut current_dir = std::env
             ::current_dir()
@@ -336,7 +341,7 @@ impl<N: NodeRpcClient, R: FeltRng, S: Store> AzeGameMethods for Client<N, R, S> 
         ).unwrap();
 
         // will do insert account later on since there is some type mismatch due to miden object crate
-        self.insert_account(&account, Some(seed), &AuthInfo::RpoFalcon512(key_pair))?;
+        self.insert_account(&account, Some(seed), &AuthSecretKey::RpoFalcon512(key_pair))?;
         Ok((account, seed))
     }
 
@@ -366,14 +371,14 @@ impl<N: NodeRpcClient, R: FeltRng, S: Store> AzeGameMethods for Client<N, R, S> 
         ).unwrap();
 
         // will do insert account later on since there is some type mismatch due to miden object crate
-        self.insert_account(&account, Some(seed), &AuthInfo::RpoFalcon512(key_pair))?;
+        self.insert_account(&account, Some(seed), &AuthSecretKey::RpoFalcon512(key_pair))?;
         Ok((account, seed))
     }
 
     // TODO: include note_type as an argument here for now we are hardcoding it
     fn build_aze_send_card_tx_request(
         &mut self,
-        // auth_info: AuthInfo,
+        // auth_info: AuthSecretKey,
         transaction_template: AzeTransactionTemplate
     ) -> Result<TransactionRequest, ClientError> {
         let account_id = transaction_template.account_id();
@@ -399,7 +404,7 @@ impl<N: NodeRpcClient, R: FeltRng, S: Store> AzeGameMethods for Client<N, R, S> 
         )?;
 
         let recipient = created_note
-            .recipient_digest()
+            .recipient().digest()
             .iter()
             .map(|x| x.as_int().to_string())
             .collect::<Vec<_>>()
@@ -418,8 +423,15 @@ impl<N: NodeRpcClient, R: FeltRng, S: Store> AzeGameMethods for Client<N, R, S> 
                 .replace("{asset}", &prepare_word(&asset.into()).to_string())
         ).expect("shipped MASM is well-formed");
 
+        let (pubkey_input, advice_map): (Word, Vec<Felt>) = match account_auth {
+            AuthSecretKey::RpoFalcon512(key) => (
+                key.public_key().into(),
+                key.to_bytes().iter().map(|a| Felt::new(*a as u64)).collect::<Vec<Felt>>(),
+            ),
+        };
+
         let tx_script = {
-            let script_inputs = vec![account_auth.into_advice_inputs()];
+            let script_inputs = vec![(pubkey_input, advice_map)];
             self.compile_tx_script(tx_script, script_inputs, vec![])?
         };
 
@@ -430,6 +442,7 @@ impl<N: NodeRpcClient, R: FeltRng, S: Store> AzeGameMethods for Client<N, R, S> 
                 sender_account_id,
                 BTreeMap::new(),
                 vec![created_note],
+                vec![],
                 Some(tx_script)
             )
         )
@@ -437,7 +450,7 @@ impl<N: NodeRpcClient, R: FeltRng, S: Store> AzeGameMethods for Client<N, R, S> 
 
     fn build_aze_play_bet_tx_request(
         &mut self,
-        // auth_info: AuthInfo,
+        // auth_info: AuthSecretKey,
         transaction_template: AzeTransactionTemplate
     ) -> Result<TransactionRequest, ClientError> {
         let account_id = transaction_template.account_id();
@@ -468,7 +481,7 @@ impl<N: NodeRpcClient, R: FeltRng, S: Store> AzeGameMethods for Client<N, R, S> 
         )?;
 
         let recipient = created_note
-            .recipient_digest()
+            .recipient().digest()
             .iter()
             .map(|x| x.as_int().to_string())
             .collect::<Vec<_>>()
@@ -485,8 +498,15 @@ impl<N: NodeRpcClient, R: FeltRng, S: Store> AzeGameMethods for Client<N, R, S> 
                 .replace("{asset}", &prepare_word(&asset.into()).to_string())
         ).expect("shipped MASM is well-formed");
 
+        let (pubkey_input, advice_map): (Word, Vec<Felt>) = match account_auth {
+            AuthSecretKey::RpoFalcon512(key) => (
+                key.public_key().into(),
+                key.to_bytes().iter().map(|a| Felt::new(*a as u64)).collect::<Vec<Felt>>(),
+            ),
+        };
+
         let tx_script = {
-            let script_inputs = vec![account_auth.into_advice_inputs()];
+            let script_inputs = vec![(pubkey_input, advice_map)];
             self.compile_tx_script(tx_script, script_inputs, vec![])?
         };
 
@@ -497,6 +517,7 @@ impl<N: NodeRpcClient, R: FeltRng, S: Store> AzeGameMethods for Client<N, R, S> 
                 sender_account_id,
                 BTreeMap::new(),
                 vec![created_note],
+                vec![],
                 Some(tx_script)
             )
         )
@@ -504,7 +525,7 @@ impl<N: NodeRpcClient, R: FeltRng, S: Store> AzeGameMethods for Client<N, R, S> 
 
     fn build_aze_play_raise_tx_request(
         &mut self,
-        // auth_info: AuthInfo,
+        // auth_info: AuthSecretKey,
         transaction_template: AzeTransactionTemplate
     ) -> Result<TransactionRequest, ClientError> {
         let account_id = transaction_template.account_id();
@@ -535,7 +556,7 @@ impl<N: NodeRpcClient, R: FeltRng, S: Store> AzeGameMethods for Client<N, R, S> 
         )?;
 
         let recipient = created_note
-            .recipient_digest()
+            .recipient().digest()
             .iter()
             .map(|x| x.as_int().to_string())
             .collect::<Vec<_>>()
@@ -552,8 +573,15 @@ impl<N: NodeRpcClient, R: FeltRng, S: Store> AzeGameMethods for Client<N, R, S> 
                 .replace("{asset}", &prepare_word(&asset.into()).to_string())
         ).expect("shipped MASM is well-formed");
 
+        let (pubkey_input, advice_map): (Word, Vec<Felt>) = match account_auth {
+            AuthSecretKey::RpoFalcon512(key) => (
+                key.public_key().into(),
+                key.to_bytes().iter().map(|a| Felt::new(*a as u64)).collect::<Vec<Felt>>(),
+            ),
+        };
+
         let tx_script = {
-            let script_inputs = vec![account_auth.into_advice_inputs()];
+            let script_inputs = vec![(pubkey_input, advice_map)];
             self.compile_tx_script(tx_script, script_inputs, vec![])?
         };
 
@@ -564,6 +592,7 @@ impl<N: NodeRpcClient, R: FeltRng, S: Store> AzeGameMethods for Client<N, R, S> 
                 sender_account_id,
                 BTreeMap::new(),
                 vec![created_note],
+                vec![],
                 Some(tx_script)
             )
         )
@@ -571,7 +600,7 @@ impl<N: NodeRpcClient, R: FeltRng, S: Store> AzeGameMethods for Client<N, R, S> 
 
     fn build_aze_play_call_tx_request(
         &mut self,
-        // auth_info: AuthInfo,
+        // auth_info: AuthSecretKey,
         transaction_template: AzeTransactionTemplate
     ) -> Result<TransactionRequest, ClientError> {
         let account_id = transaction_template.account_id();
@@ -596,7 +625,7 @@ impl<N: NodeRpcClient, R: FeltRng, S: Store> AzeGameMethods for Client<N, R, S> 
         )?;
 
         let recipient = created_note
-            .recipient_digest()
+            .recipient().digest()
             .iter()
             .map(|x| x.as_int().to_string())
             .collect::<Vec<_>>()
@@ -613,8 +642,15 @@ impl<N: NodeRpcClient, R: FeltRng, S: Store> AzeGameMethods for Client<N, R, S> 
                 .replace("{asset}", &prepare_word(&asset.into()).to_string())
         ).expect("shipped MASM is well-formed");
 
+        let (pubkey_input, advice_map): (Word, Vec<Felt>) = match account_auth {
+            AuthSecretKey::RpoFalcon512(key) => (
+                key.public_key().into(),
+                key.to_bytes().iter().map(|a| Felt::new(*a as u64)).collect::<Vec<Felt>>(),
+            ),
+        };
+
         let tx_script = {
-            let script_inputs = vec![account_auth.into_advice_inputs()];
+            let script_inputs = vec![(pubkey_input, advice_map)];
             self.compile_tx_script(tx_script, script_inputs, vec![])?
         };
 
@@ -625,6 +661,7 @@ impl<N: NodeRpcClient, R: FeltRng, S: Store> AzeGameMethods for Client<N, R, S> 
                 sender_account_id,
                 BTreeMap::new(),
                 vec![created_note],
+                vec![],
                 Some(tx_script)
             )
         )
@@ -632,7 +669,7 @@ impl<N: NodeRpcClient, R: FeltRng, S: Store> AzeGameMethods for Client<N, R, S> 
 
     fn build_aze_play_fold_tx_request(
         &mut self,
-        // auth_info: AuthInfo,
+        // auth_info: AuthSecretKey,
         transaction_template: AzeTransactionTemplate
     ) -> Result<TransactionRequest, ClientError> {
         let account_id = transaction_template.account_id();
@@ -657,7 +694,7 @@ impl<N: NodeRpcClient, R: FeltRng, S: Store> AzeGameMethods for Client<N, R, S> 
         )?;
 
         let recipient = created_note
-            .recipient_digest()
+            .recipient().digest()
             .iter()
             .map(|x| x.as_int().to_string())
             .collect::<Vec<_>>()
@@ -674,8 +711,15 @@ impl<N: NodeRpcClient, R: FeltRng, S: Store> AzeGameMethods for Client<N, R, S> 
                 .replace("{asset}", &prepare_word(&asset.into()).to_string())
         ).expect("shipped MASM is well-formed");
 
+        let (pubkey_input, advice_map): (Word, Vec<Felt>) = match account_auth {
+            AuthSecretKey::RpoFalcon512(key) => (
+                key.public_key().into(),
+                key.to_bytes().iter().map(|a| Felt::new(*a as u64)).collect::<Vec<Felt>>(),
+            ),
+        };
+
         let tx_script = {
-            let script_inputs = vec![account_auth.into_advice_inputs()];
+            let script_inputs = vec![(pubkey_input, advice_map)];
             self.compile_tx_script(tx_script, script_inputs, vec![])?
         };
 
@@ -686,6 +730,7 @@ impl<N: NodeRpcClient, R: FeltRng, S: Store> AzeGameMethods for Client<N, R, S> 
                 sender_account_id,
                 BTreeMap::new(),
                 vec![created_note],
+                vec![],
                 Some(tx_script)
             )
         )
@@ -693,7 +738,7 @@ impl<N: NodeRpcClient, R: FeltRng, S: Store> AzeGameMethods for Client<N, R, S> 
 
     fn build_aze_play_check_tx_request(
         &mut self,
-        // auth_info: AuthInfo,
+        // auth_info: AuthSecretKey,
         transaction_template: AzeTransactionTemplate
     ) -> Result<TransactionRequest, ClientError> {
         let account_id = transaction_template.account_id();
@@ -718,7 +763,7 @@ impl<N: NodeRpcClient, R: FeltRng, S: Store> AzeGameMethods for Client<N, R, S> 
         )?;
 
         let recipient = created_note
-            .recipient_digest()
+            .recipient().digest()
             .iter()
             .map(|x| x.as_int().to_string())
             .collect::<Vec<_>>()
@@ -735,8 +780,15 @@ impl<N: NodeRpcClient, R: FeltRng, S: Store> AzeGameMethods for Client<N, R, S> 
                 .replace("{asset}", &prepare_word(&asset.into()).to_string())
         ).expect("shipped MASM is well-formed");
 
+        let (pubkey_input, advice_map): (Word, Vec<Felt>) = match account_auth {
+            AuthSecretKey::RpoFalcon512(key) => (
+                key.public_key().into(),
+                key.to_bytes().iter().map(|a| Felt::new(*a as u64)).collect::<Vec<Felt>>(),
+            ),
+        };
+
         let tx_script = {
-            let script_inputs = vec![account_auth.into_advice_inputs()];
+            let script_inputs = vec![(pubkey_input, advice_map)];
             self.compile_tx_script(tx_script, script_inputs, vec![])?
         };
 
@@ -747,6 +799,7 @@ impl<N: NodeRpcClient, R: FeltRng, S: Store> AzeGameMethods for Client<N, R, S> 
                 sender_account_id,
                 BTreeMap::new(),
                 vec![created_note],
+                vec![],
                 Some(tx_script)
             )
         )

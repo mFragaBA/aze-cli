@@ -23,14 +23,13 @@ use aze_types::accounts::{
 use aze_lib::utils::log_account_status;
 use miden_lib::AuthScheme;
 use miden_objects::{
-    accounts:: AccountId,
+    accounts:: { AccountId, AuthSecretKey },
     assets::TokenSymbol,
     assets::{ Asset, FungibleAsset },
     crypto::dsa::rpo_falcon512::{ PublicKey, SecretKey },
     notes::NoteType,
 };
 use miden_client::{
-    store::AuthInfo,
     client::{
         accounts::{ AccountTemplate, AccountStorageMode },
         transactions::transaction_request::TransactionTemplate,
@@ -135,7 +134,7 @@ pub async fn create_aze_player_account(identifier: String) -> Result<AccountId, 
     ).unwrap();
     
     let mut client: AzeClient = create_aze_client();
-    client.insert_account(&player_account, Some(seed), &AuthInfo::RpoFalcon512(key_pair));
+    client.insert_account(&player_account, Some(seed), &AuthSecretKey::RpoFalcon512(key_pair));
 
     Ok(player_account.id())
 }

@@ -215,7 +215,7 @@ pub fn create_basic_aze_game_account(
     let game_constructor_item = construct_game_constructor_storage(auth_scheme, slot_data);
 
     // initializing game storage with 52 cards
-    let aze_game_account_storage = AccountStorage::new(game_constructor_item)?;
+    let aze_game_account_storage = AccountStorage::new(game_constructor_item, vec![])?;
 
     // we need to fund the account with some fungible asset which it could use to rewards players
     let account_vault = AssetVault::new(&[]).expect("error on empty vault");
@@ -279,7 +279,8 @@ pub fn create_basic_aze_player_account(
                 slot_type: StorageSlotType::Value { value_arity: 0 },
                 value: storage_slot_0_data,
             },
-        }]
+        }],
+        vec![]
     )?;
     let account_vault = AssetVault::new(&[]).expect("error on empty vault");
 
