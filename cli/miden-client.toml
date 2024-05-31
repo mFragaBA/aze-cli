@@ -1,5 +1,5 @@
 [rpc]
-endpoint = { protocol = "http", host = "localhost", port = 57291 }
+endpoint = { protocol = "http", host = "18.203.155.106", port = 57291 }
 
 [store]
 database_filepath = "store.sqlite3"
