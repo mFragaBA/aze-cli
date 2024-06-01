@@ -1,13 +1,9 @@
 mod accounts;
-mod actions;
 mod action;
+mod actions;
 mod init;
 mod register;
-use self::{
-    init::InitCmd,
-    register::RegisterCmd,
-    action::ActionCmd
-};
+use self::{action::ActionCmd, init::InitCmd, register::RegisterCmd};
 use clap::Parser;
 
 #[derive(Parser)]
@@ -21,7 +17,7 @@ struct Args {
 enum Commands {
     Init(InitCmd),
     Register(RegisterCmd),
-    Action(ActionCmd)
+    Action(ActionCmd),
 }
 
 #[tokio::main]
@@ -33,14 +29,14 @@ async fn main() {
             if let Err(error) = init_cmd.execute().await {
                 println!("{}", error);
             }
-        },
+        }
         Commands::Register(register_cmd) => {
             if let Err(error) = register_cmd.execute().await {
                 println!("{}", error);
             }
-        },
+        }
         Commands::Action(action_cmd) => {
-            if let Err(error) = action_cmd.execute().await{
+            if let Err(error) = action_cmd.execute().await {
                 println!("{}", error);
             }
         }

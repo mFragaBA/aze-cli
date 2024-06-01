@@ -15,7 +15,7 @@ impl GameStorageSlotData {
         player_count: u8,
         current_turn_index: u8,
         highest_bet: u8,
-        player_balance: u8
+        player_balance: u8,
     ) -> Self {
         Self {
             small_blind_amt,

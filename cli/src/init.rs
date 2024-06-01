@@ -1,14 +1,14 @@
 use crate::accounts::create_aze_game_account;
-use aze_lib::constants::{ SMALL_BLIND_AMOUNT, NO_OF_PLAYERS, BUY_IN_AMOUNT };
+use aze_lib::constants::{BUY_IN_AMOUNT, NO_OF_PLAYERS, SMALL_BLIND_AMOUNT};
 use aze_types::accounts::AccountCreationError;
-use miden_objects::accounts:: AccountId;
-use clap::{ ValueEnum, Parser };
-use std::path::PathBuf;
-use serde::Deserialize;
+use clap::{Parser, ValueEnum};
 use figment::{
-    providers::{ Format, Toml },
+    providers::{Format, Toml},
     Figment,
 };
+use miden_objects::accounts::AccountId;
+use serde::Deserialize;
+use std::path::PathBuf;
 
 #[derive(ValueEnum, Debug, Clone)]
 enum GameType {
@@ -19,20 +19,20 @@ enum GameType {
 
 #[derive(Debug, Clone, Parser)]
 pub struct InitCmd {
-        #[arg(short, long, value_enum, default_value = "holdem")]
-        game_type: GameType,
+    #[arg(short, long, value_enum, default_value = "holdem")]
+    game_type: GameType,
 
-        #[arg(short, long, num_args = NO_OF_PLAYERS as usize)]
-        player: Option<Vec<u64>>,
-        
-        #[arg(short, long, default_value_t = SMALL_BLIND_AMOUNT)]
-        small_blind: u8,
+    #[arg(short, long, num_args = NO_OF_PLAYERS as usize)]
+    player: Option<Vec<u64>>,
 
-        #[arg(short, long, default_value_t = BUY_IN_AMOUNT)]
-        buy_in: u64,
+    #[arg(short, long, default_value_t = SMALL_BLIND_AMOUNT)]
+    small_blind: u8,
 
-        #[arg(short, long, value_parser)]
-        config: Option<std::path::PathBuf>,
+    #[arg(short, long, default_value_t = BUY_IN_AMOUNT)]
+    buy_in: u64,
+
+    #[arg(short, long, value_parser)]
+    config: Option<std::path::PathBuf>,
 }
 
 impl InitCmd {
@@ -47,18 +47,18 @@ impl InitCmd {
                     player_ids = config.player_ids;
                     small_blind_amount = config.small_blind;
                     buy_in_amount = config.buy_in;
-                },
+                }
                 Err(e) => {
                     return Err(format!("Error loading config: {}", e));
                 }
             }
         }
-        
+
         match create_aze_game_account(player_ids, small_blind_amount, buy_in_amount).await {
             Ok(game_account_id) => {
                 println!("Game account created: {:?}", game_account_id);
                 Ok(())
-            },
+            }
             Err(e) => Err(format!("Error creating game account: {}", e)),
         }
     }
@@ -74,5 +74,10 @@ struct Config {
 fn load_config(config_file: &PathBuf) -> Result<Config, String> {
     Figment::from(Toml::file(config_file))
         .extract()
-        .map_err(|err| format!("Failed to load {} config file: {err}", config_file.display()))
+        .map_err(|err| {
+            format!(
+                "Failed to load {} config file: {err}",
+                config_file.display()
+            )
+        })
 }
