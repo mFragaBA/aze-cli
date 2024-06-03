@@ -11,6 +11,8 @@ use miden_objects::accounts:: AccountId;
 use serde::Deserialize;
 use std::path::PathBuf;
 use tokio::time::{sleep, Duration};
+use tokio::task::LocalSet;
+use tokio_cron_scheduler::{Job, JobScheduler, JobSchedulerError};
 
 #[derive(ValueEnum, Debug, Clone)]
 enum GameType {
@@ -60,18 +62,14 @@ impl InitCmd {
         match create_aze_game_account(player_ids, small_blind_amount, buy_in_amount).await {
             Ok(game_account_id) => {
                 println!("Game account created: {:?}", game_account_id);
-                let mut cron_job = CronJob::new("Consume notes", move |_name: &str| {
-                    tokio::spawn(async move {
+                let local_set = LocalSet::new();
+                local_set.run_until(async {
+                    loop {
+                        println!("Calledn every 5 seconds");
                         consume_game_notes(game_account_id).await;
                         sleep(Duration::from_secs(5)).await;
-                    });
-                });
-                cron_job.start_job();
-                
-                // loop {
-                //     consume_game_notes(game_account_id).await;
-                //     sleep(Duration::from_secs(5)).await;
-                // }
+                    }
+                }).await;
                 Ok(())
             }
             Err(e) => Err(format!("Error creating game account: {}", e)),
