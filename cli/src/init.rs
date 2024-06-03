@@ -1,14 +1,16 @@
-use crate::accounts::create_aze_game_account;
+use crate::accounts::{ create_aze_game_account, consume_game_notes };
 use aze_lib::constants::{ SMALL_BLIND_AMOUNT, NO_OF_PLAYERS, BUY_IN_AMOUNT };
 use aze_types::accounts::AccountCreationError;
-use miden_objects::accounts:: AccountId;
 use clap::{ ValueEnum, Parser };
-use std::path::PathBuf;
-use serde::Deserialize;
+use cronjob::CronJob;
 use figment::{
     providers::{ Format, Toml },
     Figment,
 };
+use miden_objects::accounts:: AccountId;
+use serde::Deserialize;
+use std::path::PathBuf;
+use tokio::time::{sleep, Duration};
 
 #[derive(ValueEnum, Debug, Clone)]
 enum GameType {
@@ -36,6 +38,7 @@ pub struct InitCmd {
 }
 
 impl InitCmd {
+
     pub async fn execute(&self) -> Result<(), String> {
         let mut player_ids = self.player.clone().unwrap_or_else(Vec::new);
         let mut small_blind_amount = self.small_blind;
@@ -57,6 +60,18 @@ impl InitCmd {
         match create_aze_game_account(player_ids, small_blind_amount, buy_in_amount).await {
             Ok(game_account_id) => {
                 println!("Game account created: {:?}", game_account_id);
+                let mut cron_job = CronJob::new("Consume notes", move |_name: &str| {
+                    tokio::spawn(async move {
+                        consume_game_notes(game_account_id).await;
+                        sleep(Duration::from_secs(5)).await;
+                    });
+                });
+                cron_job.start_job();
+                
+                // loop {
+                //     consume_game_notes(game_account_id).await;
+                //     sleep(Duration::from_secs(5)).await;
+                // }
                 Ok(())
             },
             Err(e) => Err(format!("Error creating game account: {}", e)),

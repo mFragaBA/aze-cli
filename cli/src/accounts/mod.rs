@@ -35,6 +35,7 @@ use miden_client::{
         transactions::transaction_request::TransactionTemplate,
     }
 };
+use tokio::time::{sleep, Duration};
 
 pub async fn create_aze_game_account(player_account_ids: Vec<u64>, small_blind: u8, buy_in: u64) -> Result<AccountId, AccountCreationError> {
     let mut client: AzeClient = create_aze_client();
@@ -89,6 +90,8 @@ pub async fn create_aze_game_account(player_account_ids: Vec<u64>, small_blind: 
         let target_account_id = AccountId::try_from(player_account_ids[i]).unwrap();
         println!("Target account id {:?}", target_account_id);
 
+        // log_account_status(&client, target_account_id).await;
+
         let input_cards = [cards[2 * i], cards[2 * i + 1]];
         let sendcard_txn_data = SendCardTransactionData::new(
             Asset::Fungible(fungible_asset),
@@ -97,18 +100,8 @@ pub async fn create_aze_game_account(player_account_ids: Vec<u64>, small_blind: 
             &input_cards
         );
         let transaction_template = AzeTransactionTemplate::SendCard(sendcard_txn_data);
-
         let txn_request = client.build_aze_send_card_tx_request(transaction_template).unwrap();
-
         execute_tx_and_sync(&mut client, txn_request.clone()).await;
-
-        let note_id = txn_request.expected_output_notes()[0].id();
-        let note = client.get_input_note(note_id).unwrap();
-
-        let tx_template = TransactionTemplate::ConsumeNotes(target_account_id, vec![note.id()]);
-        let tx_request = client.build_transaction_request(tx_template).unwrap();
-        execute_tx_and_sync(&mut client, tx_request).await;
-
         println!("Executed and synced with node");
     }
 
@@ -137,4 +130,19 @@ pub async fn create_aze_player_account(identifier: String) -> Result<AccountId, 
     client.insert_account(&player_account, Some(seed), &AuthSecretKey::RpoFalcon512(key_pair));
 
     Ok(player_account.id())
+}
+
+pub async fn consume_game_notes(account_id: AccountId) {
+    let mut client: AzeClient = create_aze_client();
+    let account = client.get_account(account_id).unwrap();
+    let consumable_notes = client.get_consumable_notes(Some(account_id)).unwrap();
+    println!("Consumable notes: {:?}", consumable_notes.len());
+
+    for consumable_note in consumable_notes {
+        let tx_template = TransactionTemplate::ConsumeNotes(account_id, vec![consumable_note.note.id()]);
+        let tx_request = client.build_transaction_request(tx_template).unwrap();
+        execute_tx_and_sync(&mut client, tx_request).await;
+        println!("Waiting...");
+        sleep(Duration::from_secs(5)).await;
+    }
 }

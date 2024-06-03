@@ -7,6 +7,7 @@ edition = "2021"
 aze-lib = { path = "../lib" }
 aze-types = { path = "../types" }
 clap = { version = "4.5.4", features = ["derive"] }
+cronjob = "0.4.17"
 dialoguer = "0.11"
 figment = { version = "0.10", features = ["toml"] }
 miden-client = { version = "0.3.0", features= ["concurrent","testing"] }
