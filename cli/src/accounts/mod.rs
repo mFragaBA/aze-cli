@@ -2,6 +2,7 @@ use aze_lib::accounts::create_basic_aze_player_account;
 use aze_lib::client::{
     self, create_aze_client, AzeAccountTemplate, AzeClient, AzeGameMethods, AzeTransactionTemplate,
     SendCardTransactionData,
+    GenPrivateKeyTransactionData
 };
 use aze_lib::constants::{
     FIRST_PLAYER_INDEX, HIGHEST_BET, NO_OF_PLAYERS, PLAYER_INITIAL_BALANCE, SMALL_BUY_IN_AMOUNT,
@@ -81,8 +82,42 @@ pub async fn create_aze_game_account(
     println!("Minted note");
     consume_notes(&mut client, game_account_id, &[note]).await;
     println!("Player account consumed note");
+    println!("game account created ******************************************");
 
     let sender_account_id = game_account_id;
+
+    // here we will invoke player account to generate priv key
+    let rndm_values:[u64; 10] = [1u64, 2u64, 3u64, 4u64, 5u64, 6u64, 7u64, 8u64, 9u64, 10u64];
+
+    let p_account = create_aze_player_account("rmdn_name".to_string()).await.unwrap();
+    println!("player account created");
+
+    let target_account_id = p_account;
+    // AccountId::try_from(player_account_ids[0]).unwrap();
+
+    let gen_key_data = GenPrivateKeyTransactionData::new(
+        Asset::Fungible(fungible_asset),
+        sender_account_id,
+        target_account_id,
+        rndm_values,
+    );
+
+    let transaction_template = AzeTransactionTemplate::GenKey(gen_key_data);
+
+    let txn_request = client
+        .build_aze_key_gen_tx_request(transaction_template)
+        .unwrap();
+
+    execute_tx_and_sync(&mut client, txn_request.clone()).await;
+
+    let note_id = txn_request.expected_output_notes()[0].id();
+    let note = client.get_input_note(note_id).unwrap();
+
+    let tx_template = TransactionTemplate::ConsumeNotes(target_account_id, vec![note.id()]);
+    let tx_request = client.build_transaction_request(tx_template).unwrap();
+    execute_tx_and_sync(&mut client, tx_request).await;
+
+    println!("Key generated");
 
     let mut cards = vec![];
 
