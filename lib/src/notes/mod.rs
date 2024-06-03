@@ -1,48 +1,43 @@
-use miden_lib::transaction::TransactionKernel;
-use miden_objects::{
-    accounts::{ Account, AccountCode, AccountId, AccountStorage, StorageSlotType },
-    assembly::{ ModuleAst, ProgramAst },
-    assets::{ Asset, AssetVault, FungibleAsset },
-    crypto::rand::{ FeltRng, RpoRandomCoin },
-    notes::{
-        Note,
-        NoteAssets,
-        NoteExecutionHint,
-        NoteInputs,
-        NoteMetadata,
-        NoteRecipient,
-        NoteScript,
-        NoteTag,
-        NoteType,
-    },
-    transaction::{ TransactionArgs, InputNote },
-    Felt,
-    NoteError,
-    Word,
-    ZERO,
-};
-use miden_tx::TransactionAuthenticator;
+use crate::client::AzeClient;
+use crate::constants::{BUY_IN_AMOUNT, TRANSFER_AMOUNT};
+use crate::executor::execute_tx_and_sync;
+use miden_client::client::Client;
 use miden_client::{
     client::{
         rpc::NodeRpcClient,
-        transactions::transaction_request::{ TransactionRequest, TransactionTemplate },
+        transactions::transaction_request::{TransactionRequest, TransactionTemplate},
     },
     store::Store,
 };
-use miden_client::client::Client;
-use crate::client::AzeClient;
-use crate::executor::execute_tx_and_sync;
-use crate::constants::{ BUY_IN_AMOUNT, TRANSFER_AMOUNT };
+use miden_lib::transaction::TransactionKernel;
+use miden_objects::{
+    accounts::{Account, AccountCode, AccountId, AccountStorage, StorageSlotType},
+    assembly::{ModuleAst, ProgramAst},
+    assets::{Asset, AssetVault, FungibleAsset},
+    crypto::rand::{FeltRng, RpoRandomCoin},
+    notes::{
+        Note, NoteAssets, NoteExecutionHint, NoteInputs, NoteMetadata, NoteRecipient, NoteScript,
+        NoteTag, NoteType,
+    },
+    transaction::{InputNote, TransactionArgs},
+    Felt, NoteError, Word, ZERO,
+};
+use miden_tx::TransactionAuthenticator;
 use std::rc::Rc;
 
-pub fn create_send_card_note<R: FeltRng, N: NodeRpcClient, S: Store, A: TransactionAuthenticator>(
+pub fn create_send_card_note<
+    R: FeltRng,
+    N: NodeRpcClient,
+    S: Store,
+    A: TransactionAuthenticator,
+>(
     client: &mut Client<N, R, S, A>,
     sender_account_id: AccountId,
     target_account_id: AccountId,
     assets: Vec<Asset>,
     note_type: NoteType,
     mut rng: RpoRandomCoin,
-    cards: [[Felt; 4]; 2]
+    cards: [[Felt; 4]; 2],
 ) -> Result<Note, NoteError> {
     let note_script = include_str!("../../contracts/notes/game/deal.masm");
     // TODO: hide it under feature flag debug (.with_debug_mode(true))
@@ -75,7 +70,7 @@ pub fn create_play_bet_note<R: FeltRng, N: NodeRpcClient, S: Store, A: Transacti
     assets: Vec<Asset>,
     note_type: NoteType,
     mut rng: RpoRandomCoin,
-    player_bet: u8
+    player_bet: u8,
 ) -> Result<Note, NoteError> {
     let note_script = include_str!("../../contracts/notes/game/bet.masm");
     let script_ast = ProgramAst::parse(note_script).unwrap();
@@ -94,14 +89,19 @@ pub fn create_play_bet_note<R: FeltRng, N: NodeRpcClient, S: Store, A: Transacti
     Ok(Note::new(vault, metadata, recipient))
 }
 
-pub fn create_play_raise_note<R: FeltRng, N: NodeRpcClient, S: Store, A: TransactionAuthenticator>(
+pub fn create_play_raise_note<
+    R: FeltRng,
+    N: NodeRpcClient,
+    S: Store,
+    A: TransactionAuthenticator,
+>(
     client: &mut Client<N, R, S, A>,
     sender_account_id: AccountId,
     target_account_id: AccountId,
     assets: Vec<Asset>,
     note_type: NoteType,
     mut rng: RpoRandomCoin,
-    player_bet: u8
+    player_bet: u8,
 ) -> Result<Note, NoteError> {
     let note_script = include_str!("../../contracts/notes/game/raise.masm");
     let script_ast = ProgramAst::parse(note_script).unwrap();
@@ -120,13 +120,18 @@ pub fn create_play_raise_note<R: FeltRng, N: NodeRpcClient, S: Store, A: Transac
     Ok(Note::new(vault, metadata, recipient))
 }
 
-pub fn create_play_call_note<R: FeltRng, N: NodeRpcClient, S: Store, A: TransactionAuthenticator>(
+pub fn create_play_call_note<
+    R: FeltRng,
+    N: NodeRpcClient,
+    S: Store,
+    A: TransactionAuthenticator,
+>(
     client: &mut Client<N, R, S, A>,
     sender_account_id: AccountId,
     target_account_id: AccountId,
     assets: Vec<Asset>,
     note_type: NoteType,
-    mut rng: RpoRandomCoin
+    mut rng: RpoRandomCoin,
 ) -> Result<Note, NoteError> {
     let note_script = include_str!("../../contracts/notes/game/call.masm");
     let script_ast = ProgramAst::parse(note_script).unwrap();
@@ -144,13 +149,18 @@ pub fn create_play_call_note<R: FeltRng, N: NodeRpcClient, S: Store, A: Transact
     Ok(Note::new(vault, metadata, recipient))
 }
 
-pub fn create_play_fold_note<R: FeltRng, N: NodeRpcClient, S: Store, A: TransactionAuthenticator>(
+pub fn create_play_fold_note<
+    R: FeltRng,
+    N: NodeRpcClient,
+    S: Store,
+    A: TransactionAuthenticator,
+>(
     client: &mut Client<N, R, S, A>,
     sender_account_id: AccountId,
     target_account_id: AccountId,
     assets: Vec<Asset>,
     note_type: NoteType,
-    mut rng: RpoRandomCoin
+    mut rng: RpoRandomCoin,
 ) -> Result<Note, NoteError> {
     let note_script = include_str!("../../contracts/notes/game/fold.masm");
     let script_ast = ProgramAst::parse(note_script).unwrap();
@@ -168,13 +178,18 @@ pub fn create_play_fold_note<R: FeltRng, N: NodeRpcClient, S: Store, A: Transact
     Ok(Note::new(vault, metadata, recipient))
 }
 
-pub fn create_play_check_note<R: FeltRng, N: NodeRpcClient, S: Store, A: TransactionAuthenticator>(
+pub fn create_play_check_note<
+    R: FeltRng,
+    N: NodeRpcClient,
+    S: Store,
+    A: TransactionAuthenticator,
+>(
     client: &mut Client<N, R, S, A>,
     sender_account_id: AccountId,
     target_account_id: AccountId,
     assets: Vec<Asset>,
     note_type: NoteType,
-    mut rng: RpoRandomCoin
+    mut rng: RpoRandomCoin,
 ) -> Result<Note, NoteError> {
     let note_script = include_str!("../../contracts/notes/game/check.masm");
     let script_ast = ProgramAst::parse(note_script).unwrap();
@@ -197,17 +212,14 @@ pub async fn mint_note(
     client: &mut AzeClient,
     basic_account_id: AccountId,
     faucet_account_id: AccountId,
-    note_type: NoteType
+    note_type: NoteType,
 ) -> InputNote {
     let (regular_account, _seed) = client.get_account(basic_account_id).unwrap();
 
     // Create a Mint Tx for 1000 units of our fungible asset
     let fungible_asset = FungibleAsset::new(faucet_account_id, BUY_IN_AMOUNT).unwrap();
-    let tx_template = TransactionTemplate::MintFungibleAsset(
-        fungible_asset,
-        basic_account_id,
-        note_type
-    );
+    let tx_template =
+        TransactionTemplate::MintFungibleAsset(fungible_asset, basic_account_id, note_type);
 
     println!("Minting Asset");
     let tx_request = client.build_transaction_request(tx_template).unwrap();
@@ -223,15 +235,10 @@ pub async fn mint_note(
 pub async fn consume_notes(
     client: &mut AzeClient,
     account_id: AccountId,
-    input_notes: &[InputNote]
+    input_notes: &[InputNote],
 ) {
-    let tx_template = TransactionTemplate::ConsumeNotes(
-        account_id,
-        input_notes
-            .iter()
-            .map(|n| n.id())
-            .collect()
-    );
+    let tx_template =
+        TransactionTemplate::ConsumeNotes(account_id, input_notes.iter().map(|n| n.id()).collect());
     println!("Consuming Note...");
     let tx_request: TransactionRequest = client.build_transaction_request(tx_template).unwrap();
     execute_tx_and_sync(client, tx_request).await;

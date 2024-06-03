@@ -1,5 +1,4 @@
-pub const DEFAULT_AUTH_SCRIPT: &str =
-    "
+pub const DEFAULT_AUTH_SCRIPT: &str = "
     use.miden::contracts::auth::basic->auth_tx
 
     begin
