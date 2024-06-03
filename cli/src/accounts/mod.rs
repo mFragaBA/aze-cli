@@ -15,10 +15,6 @@ use aze_types::accounts::{
     AccountCreationError, AccountCreationRequest, AccountCreationResponse,
     PlayerAccountCreationRequest, PlayerAccountCreationResponse,
 };
-use miden_client::client::{
-    accounts::{AccountStorageMode, AccountTemplate},
-    transactions::transaction_request::TransactionTemplate,
-};
 use miden_lib::AuthScheme;
 use miden_objects::{
     accounts::{AccountId, AuthSecretKey},
