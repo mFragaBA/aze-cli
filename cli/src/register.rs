@@ -1,7 +1,7 @@
 use crate::accounts::create_aze_player_account;
 use aze_types::accounts::AccountCreationError;
-use miden_objects::accounts:: AccountId;
 use clap::Parser;
+use miden_objects::accounts::AccountId;
 
 #[derive(Debug, Clone, Parser)]
 pub struct RegisterCmd {
@@ -15,7 +15,7 @@ impl RegisterCmd {
             Ok(account_id) => {
                 println!("Player account created: {:?}", account_id);
                 Ok(())
-            },
+            }
             Err(e) => Err(format!("Error creating player account: {}", e)),
         }
     }
