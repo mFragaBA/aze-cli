@@ -1,5 +1,5 @@
 use crate::accounts::create_aze_game_account;
-use aze_lib::constants::{BUY_IN_AMOUNT, NO_OF_PLAYERS, SMALL_BLIND_AMOUNT};
+use aze_lib::{constants::{BUY_IN_AMOUNT, NO_OF_PLAYERS, SMALL_BLIND_AMOUNT}, broadcast::start_wss};
 use aze_types::accounts::AccountCreationError;
 use clap::{Parser, ValueEnum};
 use figment::{
@@ -57,6 +57,13 @@ impl InitCmd {
         match create_aze_game_account(player_ids, small_blind_amount, buy_in_amount).await {
             Ok(game_account_id) => {
                 println!("Game account created: {:?}", game_account_id);
+                let ws_url = start_wss(game_account_id.to_string()).ok_or("Failed to start WebSocket server")?;
+                println!("WebSocket server started at: {}", ws_url);
+
+                // Keep the process running
+                println!("Press Ctrl+C to stop the server...");
+                tokio::signal::ctrl_c().await.expect("Failed to listen for ctrl_c");
+                println!("Server stopped.");
                 Ok(())
             }
             Err(e) => Err(format!("Error creating game account: {}", e)),
