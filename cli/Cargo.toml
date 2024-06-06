@@ -4,10 +4,12 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+aze-enc = { git = "https://github.com/RizeLabs/elgamal-ecgfp5.git", branch = "main" }
 aze-lib = { path = "../lib" }
 aze-types = { path = "../types" }
 clap = { version = "4.5.4", features = ["derive"] }
 dialoguer = "0.11"
+ecgfp5 = { git = "https://github.com/RizeLabs/elgamal-ecgfp5.git", branch = "main" }
 figment = { version = "0.10", features = ["toml"] }
 miden-client = { version = "0.3.0", features= ["concurrent","testing"] }
 miden-lib = { version = "0.3.0", features= ["concurrent","testing"] }

@@ -63,6 +63,45 @@ pub fn create_send_card_note<
     Ok(Note::new(vault, metadata, recipient))
 }
 
+pub fn create_key_gen_note<
+    R: FeltRng,
+    N: NodeRpcClient,
+    S: Store,
+    A: TransactionAuthenticator,
+>(
+    client: &mut Client<N, R, S, A>,
+    sender_account_id: AccountId,
+    target_account_id: AccountId,
+    assets: Vec<Asset>,
+    note_type: NoteType,
+    mut rng: RpoRandomCoin,
+    element: [u64; 10],
+) -> Result<Note, NoteError> {
+    let note_script = include_str!("../../contracts/notes/game/genkey.masm");
+    // TODO: hide it under feature flag debug (.with_debug_mode(true))
+    let script_ast = ProgramAst::parse(note_script).unwrap();
+    let note_script = client.compile_note_script(script_ast, vec![]).unwrap();
+
+    // let card_1 = cards[0];
+    // let card_2 = cards[1];
+
+    let mut inputs = element.iter().map(|&x| Felt::new(x)).collect::<Vec<Felt>>();
+    // [card_1.as_slice(), card_2.as_slice()].concat();
+    println!("card Inputs: {:?}", inputs);
+
+    let note_inputs = NoteInputs::new(inputs).unwrap();
+    let tag = NoteTag::from_account_id(target_account_id, NoteExecutionHint::Local)?;
+    let serial_num = rng.draw_word();
+    let aux = ZERO;
+
+    // TODO: For now hardcoding notes to be public, + Also find out what encrypted notes means
+    let metadata = NoteMetadata::new(sender_account_id, NoteType::Public, tag, aux)?;
+    let vault = NoteAssets::new(assets)?;
+    let recipient = NoteRecipient::new(serial_num, note_script, note_inputs);
+
+    Ok(Note::new(vault, metadata, recipient))
+}
+
 pub fn create_play_bet_note<R: FeltRng, N: NodeRpcClient, S: Store, A: TransactionAuthenticator>(
     client: &mut Client<N, R, S, A>,
     sender_account_id: AccountId,

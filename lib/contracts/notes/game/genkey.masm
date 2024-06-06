@@ -1,0 +1,40 @@
+use.std::math::ecgfp5::group
+use.miden::account
+use.miden::note
+use.miden::contracts::wallets::basic->wallet
+
+proc.gen_privatekey.8
+    push.1 drop
+    debug.stack
+    exec.group::gen_mul
+    push.1 drop
+    debug.stack
+    # need to set the generated keys somewhere as well as the r values passed
+    # push.5 push.6 push.7 push.8 # value
+    # push.1 push.2 push.3 push.4 # key
+    # push.10 exec.account::set_map_item
+    dropw dropw dropw
+end
+
+begin   
+    dropw
+
+    push.0 exec.note::get_inputs drop
+    mem_loadw drop drop drop
+
+    # call.play_raise 
+    debug.local
+    debug.stack
+    call.gen_privatekey
+    # => [...]
+
+    dropw
+    exec.note::get_assets drop mem_loadw
+    # => [ASSET, ...]
+
+    # load the asset and add it to the account
+    call.wallet::receive_asset
+    # => [...]
+
+    dropw
+end
