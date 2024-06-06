@@ -2,9 +2,10 @@ mod accounts;
 mod action;
 mod actions;
 mod init;
+mod consume_notes;
 mod register;
 mod connect;
-use self::{action::ActionCmd, init::InitCmd, register::RegisterCmd, connect::ConnectCmd};
+use self::{ action::ActionCmd, init::InitCmd, consume_notes::ConsumeNotesCmd, register::RegisterCmd, connect::ConnectCmd };
 use clap::Parser;
 
 #[derive(Parser)]
@@ -16,9 +17,10 @@ struct Args {
 
 #[derive(Parser, Debug, Clone)]
 enum Commands {
+    Action(ActionCmd),
+    ConsumeNotes(ConsumeNotesCmd),
     Init(InitCmd),
     Register(RegisterCmd),
-    Action(ActionCmd),
     Connect(ConnectCmd)
 }
 
@@ -28,6 +30,11 @@ async fn main() {
     match args.cmd {
         Commands::Init(init_cmd) => {
             if let Err(error) = init_cmd.execute().await {
+                println!("{}", error);
+            }
+        }
+        Commands::ConsumeNotes(consume_notes_cmd) => {
+            if let Err(error) = consume_notes_cmd.execute().await {
                 println!("{}", error);
             }
         }

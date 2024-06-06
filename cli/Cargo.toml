@@ -16,3 +16,4 @@ serde = { version = "1.0", features = ["derive"] }
 tokio = { version = "1.29", features = ["rt-multi-thread", "net", "macros"] }
 tokio-tungstenite = "0.16"
 futures-util = "0.3"
+tokio-cron-scheduler = "0.10.2"

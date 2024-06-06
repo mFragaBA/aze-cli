@@ -9,8 +9,6 @@ use aze_lib::constants::{
 use aze_lib::executor::execute_tx_and_sync;
 use aze_lib::notes::{consume_notes, mint_note};
 use aze_lib::storage::GameStorageSlotData;
-
-use aze_lib::utils::log_account_status;
 use aze_types::accounts::{
     AccountCreationError, AccountCreationRequest, AccountCreationResponse,
     PlayerAccountCreationRequest, PlayerAccountCreationResponse,
@@ -27,6 +25,7 @@ use miden_objects::{
     crypto::dsa::rpo_falcon512::{PublicKey, SecretKey},
     notes::NoteType,
 };
+use tokio::time::{ sleep, Duration };
 
 pub async fn create_aze_game_account(
     player_account_ids: Vec<u64>,
@@ -59,7 +58,7 @@ pub async fn create_aze_game_account(
         .new_game_account(
             AzeAccountTemplate::GameAccount {
                 mutable_code: false,
-                storage_mode: AccountStorageMode::Local,
+                storage_mode: AccountStorageMode::OnChain,
             },
             Some(slot_data),
         )
@@ -113,13 +112,6 @@ pub async fn create_aze_game_account(
 
         execute_tx_and_sync(&mut client, txn_request.clone()).await;
 
-        let note_id = txn_request.expected_output_notes()[0].id();
-        let note = client.get_input_note(note_id).unwrap();
-
-        let tx_template = TransactionTemplate::ConsumeNotes(target_account_id, vec![note.id()]);
-        let tx_request = client.build_transaction_request(tx_template).unwrap();
-        execute_tx_and_sync(&mut client, tx_request).await;
-
         println!("Executed and synced with node");
     }
 
@@ -155,4 +147,19 @@ pub async fn create_aze_player_account(
     );
 
     Ok(player_account.id())
+}
+
+pub async fn consume_game_notes(account_id: AccountId) {
+    let mut client: AzeClient = create_aze_client();
+    let account = client.get_account(account_id).unwrap();
+    let consumable_notes = client.get_consumable_notes(Some(account_id)).unwrap();
+    println!("Consumable notes: {:?}", consumable_notes.len());
+
+    for consumable_note in consumable_notes {
+        let tx_template = TransactionTemplate::ConsumeNotes(account_id, vec![consumable_note.note.id()]);
+        let tx_request = client.build_transaction_request(tx_template).unwrap();
+        execute_tx_and_sync(&mut client, tx_request).await;
+        println!("Waiting...");
+        sleep(Duration::from_secs(5)).await;
+    }
 }
