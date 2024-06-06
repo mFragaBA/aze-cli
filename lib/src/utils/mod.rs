@@ -41,6 +41,10 @@ use miden_client::{
 use std::path::Path;
 use std::{env::temp_dir, fs, time::Duration};
 
+use reqwest::Client as httpClient;
+use serde::Serialize;
+use std::error::Error;
+
 // use uuid::Uuid;
 
 pub fn get_new_key_pair_with_advice_map() -> (Word, Vec<Felt>) {
@@ -179,3 +183,37 @@ pub async fn setup_accounts(
         slot_data,
     );
 }
+
+#[derive(Serialize)]
+struct PublishRequest {
+    game_id: String,
+    event: String,
+}
+
+pub async fn broadcast_message(game_id: String, url: String, message: String) -> Result<(), Box<dyn Error>> {
+    let client = httpClient::new();
+    let publish_url = format!("{}/publish", url);
+
+    let request_body = PublishRequest {
+        game_id,
+        event: message,
+    };
+
+    let response = client
+        .post(&publish_url)
+        .json(&request_body)
+        .send()
+        .await?;
+
+    if response.status().is_success() {
+        println!("Message successfully published");
+        Ok(())
+    } else {
+        let status = response.status();
+        let error_text = response.text().await?;
+        eprintln!("Failed to publish message: {} - {}", status, error_text);
+        Err(format!("Failed to publish message: {} - {}", status, error_text).into())
+    }
+}
+
+
