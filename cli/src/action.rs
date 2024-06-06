@@ -67,7 +67,7 @@ impl ActionCmd {
             None
         };
 
-        match perform_action(playerid, gameid, action_type, amount).await {
+        match send_action(playerid, gameid, action_type, amount).await {
             Ok(_) => {
                 println!("Action performed successfully");
                 Ok(())
@@ -77,7 +77,7 @@ impl ActionCmd {
     }
 }
 
-async fn perform_action(
+async fn send_action(
     player_id: u64,
     game_id: u64,
     action_type: ActionType,
