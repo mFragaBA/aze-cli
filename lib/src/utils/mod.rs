@@ -42,7 +42,7 @@ use std::path::Path;
 use std::{env::temp_dir, fs, time::Duration};
 
 use reqwest::Client as httpClient;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::error::Error;
 
 // use uuid::Uuid;
@@ -190,9 +190,38 @@ struct PublishRequest {
     event: String,
 }
 
+// Config for saving broadcast url
+#[derive(Default, Serialize, Deserialize)]
+pub struct Ws_config {
+    pub url: Option<String>,
+}
+
+impl Ws_config {
+    pub fn new() -> Self {
+        Ws_config { url: None }
+    }
+
+    pub fn load(config_path: &std::path::PathBuf) -> Self {
+        if let Ok(config_data) = fs::read_to_string(config_path) {
+            serde_json::from_str(&config_data).unwrap_or_default()
+        } else {
+            Ws_config::new()
+        }
+    }
+
+    pub fn save(&self, config_path: &std::path::PathBuf) {
+        if let Ok(config_data) = serde_json::to_string_pretty(self) {
+            fs::write(config_path, config_data).expect("Unable to write config file");
+        }
+    }
+}
+
 pub async fn broadcast_message(game_id: String, url: String, message: String) -> Result<(), Box<dyn Error>> {
     let client = httpClient::new();
-    let publish_url = format!("{}/publish", url);
+    let url = url::Url::parse(&url).unwrap();
+    let base_url = format!("http://{}", url.host_str().unwrap());
+    let port = url.port().map(|p| format!(":{}", p)).unwrap_or_default();
+    let publish_url = format!("{}{}{}", base_url, port, "/publish");
 
     let request_body = PublishRequest {
         game_id,

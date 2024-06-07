@@ -1,5 +1,8 @@
-use aze_lib::{constants::{BUY_IN_AMOUNT, NO_OF_PLAYERS, SMALL_BLIND_AMOUNT}, broadcast::start_wss};
-use crate::accounts::{ create_aze_game_account, consume_game_notes };
+use crate::accounts::{consume_game_notes, create_aze_game_account};
+use aze_lib::{
+    broadcast::start_wss,
+    constants::{BUY_IN_AMOUNT, NO_OF_PLAYERS, SMALL_BLIND_AMOUNT},
+};
 use aze_types::accounts::AccountCreationError;
 use clap::{Parser, ValueEnum};
 use figment::{
@@ -10,7 +13,7 @@ use miden_objects::accounts::AccountId;
 use serde::Deserialize;
 use std::path::PathBuf;
 use tokio::task::LocalSet;
-use tokio::time::{ sleep, Duration };
+use tokio::time::{sleep, Duration};
 
 #[derive(ValueEnum, Debug, Clone)]
 enum GameType {
@@ -38,7 +41,7 @@ pub struct InitCmd {
 }
 
 impl InitCmd {
-    pub async fn execute(&self) -> Result<(), String> {
+    pub async fn execute(&self, ws_config: &PathBuf) -> Result<(), String> {
         let mut player_ids = self.player.clone().unwrap_or_else(Vec::new);
         let mut small_blind_amount = self.small_blind;
         let mut buy_in_amount = self.buy_in;
@@ -59,21 +62,30 @@ impl InitCmd {
         match create_aze_game_account(player_ids, small_blind_amount, buy_in_amount).await {
             Ok(game_account_id) => {
                 println!("Game account created: {:?}", game_account_id);
-                let local_set = LocalSet::new();
-                local_set.run_until(async {
-                    loop {
-                        consume_game_notes(game_account_id).await;
-                        sleep(Duration::from_secs(5)).await;
-                    }
-                }).await;
-              
-                let ws_url = start_wss(game_account_id.to_string()).ok_or("Failed to start WebSocket server")?;
-                println!("WebSocket server started at: {}", ws_url);
 
-                // Keep the process running
-                println!("Press Ctrl+C to stop the server...");
-                tokio::signal::ctrl_c().await.expect("Failed to listen for ctrl_c");
-                println!("Server stopped.");
+                // start wss server in new thread and stores url in ws_config.json for future use i.e sending messages
+                let config_clone = ws_config.clone();
+                tokio::spawn(async move {
+                    match start_wss(game_account_id.to_string(), &config_clone){
+                        Some(ws_url) => {
+                            println!("Game server started at: {}",ws_url);
+                            Ok(())
+                        }
+                        None => {
+                            return Err("Error starting ws server");
+                        }
+                    }
+                });
+
+                let local_set = LocalSet::new();
+                local_set
+                    .run_until(async {
+                        loop {
+                            consume_game_notes(game_account_id).await;
+                            sleep(Duration::from_secs(5)).await;
+                        }
+                    })
+                    .await;
                 Ok(())
             }
             Err(e) => Err(format!("Error creating game account: {}", e)),

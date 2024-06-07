@@ -27,9 +27,10 @@ enum Commands {
 #[tokio::main]
 async fn main() {
     let args = Args::parse();
+    let ws_config_path = std::path::PathBuf::from("ws_config.json");
     match args.cmd {
         Commands::Init(init_cmd) => {
-            if let Err(error) = init_cmd.execute().await {
+            if let Err(error) = init_cmd.execute(&ws_config_path).await {
                 println!("{}", error);
             }
         }
@@ -44,12 +45,12 @@ async fn main() {
             }
         }
         Commands::Action(action_cmd) => {
-            if let Err(error) = action_cmd.execute().await {
+            if let Err(error) = action_cmd.execute(&ws_config_path).await {
                 println!("{}", error);
             }
         }
         Commands::Connect(connect_cmd) => {
-            if let Err(error) = connect_cmd.execute().await {
+            if let Err(error) = connect_cmd.execute(&ws_config_path).await {
                 println!("{}", error);
             }
         }

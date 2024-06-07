@@ -18,7 +18,7 @@ enum ActionType {
 pub struct ActionCmd {}
 
 impl ActionCmd {
-    pub async fn execute(&self) -> Result<(), String> {
+    pub async fn execute(&self, ws_config_path: &std::path::PathBuf) -> Result<(), String> {
         let playerid: u64 = Input::<String>::new()
             .with_prompt("What is your player id?")
             .interact()
@@ -67,7 +67,7 @@ impl ActionCmd {
             None
         };
 
-        match send_action(playerid, gameid, action_type, amount).await {
+        match send_action(playerid, gameid, action_type, amount, ws_config_path).await {
             Ok(_) => {
                 println!("Action performed successfully");
                 Ok(())
@@ -82,13 +82,14 @@ async fn send_action(
     game_id: u64,
     action_type: ActionType,
     amount: Option<u8>,
+    ws_config_path: &std::path::PathBuf
 ) -> Result<GameActionResponse, String> {
     match action_type {
-        ActionType::Raise => actions::raise(player_id, game_id, amount).await,
-        ActionType::SmallBlind => actions::small_blind(player_id, game_id).await,
-        ActionType::BigBlind => actions::big_blind(player_id, game_id).await,
-        ActionType::Call => actions::call(player_id, game_id).await,
-        ActionType::Check => actions::check(player_id, game_id).await,
-        ActionType::Fold => actions::fold(player_id, game_id).await,
+        ActionType::Raise => actions::raise(player_id, game_id, amount, ws_config_path).await,
+        ActionType::SmallBlind => actions::small_blind(player_id, game_id, ws_config_path).await,
+        ActionType::BigBlind => actions::big_blind(player_id, game_id, ws_config_path).await,
+        ActionType::Call => actions::call(player_id, game_id, ws_config_path).await,
+        ActionType::Check => actions::check(player_id, game_id, ws_config_path).await,
+        ActionType::Fold => actions::fold(player_id, game_id, ws_config_path).await,
     }
 }

@@ -10,6 +10,9 @@ use tokio_tungstenite::tungstenite::protocol::Message as TungsteniteMessage;
 use warp::hyper::StatusCode;
 use warp::ws::Ws;
 use warp::Filter;
+use std::path::PathBuf;
+
+use crate::utils::Ws_config;
 
 type Peers = Arc<RwLock<HashMap<String, broadcast::Sender<TungsteniteMessage>>>>;
 
@@ -19,7 +22,7 @@ struct PublishRequest {
     event: String,
 }
 
-pub fn start_wss(game_id: String) -> Option<String> {
+pub fn start_wss(game_id: String, ws_config_path: &PathBuf) -> Option<String> {
     // Use localhost IP for debugging
     let ip: [u8; 4] = get_ipv4_bytes().unwrap();
     let port = 12044;
@@ -58,6 +61,9 @@ pub fn start_wss(game_id: String) -> Option<String> {
     });
 
     // Return the WebSocket URL
+    let mut ws_config = Ws_config::load(ws_config_path);
+    ws_config.url = Some(ws_url.to_string());
+    ws_config.save(ws_config_path);
     Some(ws_url)
 }
 
