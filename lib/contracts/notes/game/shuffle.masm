@@ -1,0 +1,51 @@
+proc.shuffle
+
+end
+
+begin 
+    # Card 1 
+    # card index 
+    push.10 exec.note::get_inputs drop
+    mem_loadw mem_store.0 drop drop drop
+
+    # Ca
+    push.0 exec.note::get_inputs drop 
+    push.1 exec.note::get_inputs drop 
+    push.2 exec.note::get_inputs drop 
+    push.3 exec.note::get_inputs drop 
+    push.4 exec.note::get_inputs drop 
+    # => [ptr5, ptr4, ptr3, ptr2, ptr1]
+    call.shuffle
+
+    # Cb
+    push.5 exec.note::get_inputs drop 
+    push.6 exec.note::get_inputs drop 
+    push.7 exec.note::get_inputs drop 
+    push.8 exec.note::get_inputs drop 
+    push.9 exec.note::get_inputs drop 
+    # => [ptr5, ptr4, ptr3, ptr2, ptr1]
+    call.shuffle
+
+    # Card 2
+    # card index
+    push.20 exec.note::get_inputs drop
+    mem_loadw mem_store.0 drop drop drop
+
+    # Ca
+    push.10 exec.note::get_inputs drop 
+    push.11 exec.note::get_inputs drop 
+    push.12 exec.note::get_inputs drop 
+    push.13 exec.note::get_inputs drop 
+    push.14 exec.note::get_inputs drop 
+    # => [ptr5, ptr4, ptr3, ptr2, ptr1]
+    call.shuffle
+
+    # Cb
+    push.15 exec.note::get_inputs drop 
+    push.16 exec.note::get_inputs drop 
+    push.17 exec.note::get_inputs drop 
+    push.18 exec.note::get_inputs drop 
+    push.19 exec.note::get_inputs drop 
+    # => [ptr5, ptr4, ptr3, ptr2, ptr1]
+    call.shuffle
+end

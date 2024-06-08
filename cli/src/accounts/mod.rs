@@ -1,3 +1,4 @@
+use aze_enc::{ keygen, mask, remask };
 use aze_lib::accounts::create_basic_aze_player_account;
 use aze_lib::client::{
     self, create_aze_client, AzeAccountTemplate, AzeClient, AzeGameMethods, AzeTransactionTemplate,
@@ -28,6 +29,7 @@ use miden_objects::{
     crypto::dsa::rpo_falcon512::{PublicKey, SecretKey},
     notes::NoteType,
 };
+use ecgfp5::scalar::Scalar;
 
 pub async fn create_aze_game_account(
     player_account_ids: Vec<u64>,
@@ -119,6 +121,18 @@ pub async fn create_aze_game_account(
 
     println!("Key generated");
 
+    let mut card_points = vec![]; // 2 cards for now
+    card_points.push(keygen([1, 1, 0, 0, 0])); // for now 
+    card_points.push(keygen([1, 2, 0, 0, 0]));
+    let pub_key_agg = keygen([0, 0, 0, 0, 0]); // for now
+    let masking_factor =  Scalar::from_val([1, 1, 1, 1, 1]);// for now
+
+    // Encryption
+    let cipher_card_1 = mask(pub_key_agg, card_points[0], masking_factor);
+    println!("Cipher card 1 --> {:?}\n", cipher_card_1);
+    let cipher_card_2 = mask(pub_key_agg, card_points[1], masking_factor);
+    println!("Cipher card 2 --> {:?}", cipher_card_2);
+
     let mut cards = vec![];
 
     for i in 1..2 * player_account_ids.len() + 1 {
@@ -188,6 +202,22 @@ pub async fn create_aze_player_account(
         Some(seed),
         &AuthSecretKey::RpoFalcon512(key_pair),
     );
+
+    let target_account_id = player_account.id(); // for now
+    // get the masked cards, hardcoded for now
+    let mut card_points = vec![]; // 2 cards for now
+    card_points.push(keygen([1, 1, 0, 0, 0])); // for now 
+    card_points.push(keygen([1, 2, 0, 0, 0]));
+    let pub_key_agg = keygen([0, 0, 0, 0, 0]); // for now
+    let masking_factor =  Scalar::from_val([1, 1, 1, 1, 1]);// for now
+    let cipher_card_1 = mask(pub_key_agg, card_points[0], masking_factor);
+    let cipher_card_2 = mask(pub_key_agg, card_points[1], masking_factor);
+
+    // remask
+    let remasked_card_1 = remask(pub_key_agg, cipher_card_1, masking_factor);
+    println!("Remasked card 1 --> {:?}\n", remasked_card_1);
+    let remasked_card_2 = remask(pub_key_agg, cipher_card_2, masking_factor);
+    println!("Remasked card 2 --> {:?}", remasked_card_2);
 
     Ok(player_account.id())
 }
