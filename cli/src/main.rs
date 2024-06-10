@@ -5,7 +5,8 @@ mod init;
 mod consume_notes;
 mod register;
 mod connect;
-use self::{ action::ActionCmd, init::InitCmd, consume_notes::ConsumeNotesCmd, register::RegisterCmd, connect::ConnectCmd };
+mod stats;
+use self::{ action::ActionCmd, init::InitCmd, consume_notes::ConsumeNotesCmd, register::RegisterCmd, connect::ConnectCmd, stats::StatsCmd };
 use clap::Parser;
 
 #[derive(Parser)]
@@ -21,7 +22,8 @@ enum Commands {
     ConsumeNotes(ConsumeNotesCmd),
     Init(InitCmd),
     Register(RegisterCmd),
-    Connect(ConnectCmd)
+    Connect(ConnectCmd),
+    Stats(StatsCmd)
 }
 
 #[tokio::main]
@@ -51,6 +53,11 @@ async fn main() {
         }
         Commands::Connect(connect_cmd) => {
             if let Err(error) = connect_cmd.execute(&ws_config_path).await {
+                println!("{}", error);
+            }
+        }
+        Commands::Stats(stats_cmd) => {
+            if let Err(error) = stats_cmd.execute() {
                 println!("{}", error);
             }
         }
