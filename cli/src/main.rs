@@ -3,8 +3,9 @@ mod action;
 mod actions;
 mod init;
 mod consume_notes;
+mod peek_hand;
 mod register;
-use self::{ action::ActionCmd, init::InitCmd, consume_notes::ConsumeNotesCmd, register::RegisterCmd };
+use self::{ action::ActionCmd, init::InitCmd, consume_notes::ConsumeNotesCmd, register::RegisterCmd, peek_hand::PeekHandCmd };
 use clap::Parser;
 
 #[derive(Parser)]
@@ -19,6 +20,7 @@ enum Commands {
     Action(ActionCmd),
     ConsumeNotes(ConsumeNotesCmd),
     Init(InitCmd),
+    PeekHand(PeekHandCmd),
     Register(RegisterCmd),
 }
 
@@ -34,6 +36,11 @@ async fn main() {
         }
         Commands::ConsumeNotes(consume_notes_cmd) => {
             if let Err(error) = consume_notes_cmd.execute().await {
+                println!("{}", error);
+            }
+        }
+        Commands::PeekHand(peek_hand_cmd) => {
+            if let Err(error) = peek_hand_cmd.execute().await {
                 println!("{}", error);
             }
         }
