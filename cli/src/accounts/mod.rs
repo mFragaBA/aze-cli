@@ -61,7 +61,7 @@ pub async fn create_aze_game_account(
         .new_game_account(
             AzeAccountTemplate::GameAccount {
                 mutable_code: false,
-                storage_mode: AccountStorageMode::OnChain,
+                storage_mode: AccountStorageMode::Local,
             },
             Some(slot_data),
         )
@@ -82,21 +82,13 @@ pub async fn create_aze_game_account(
     .await;
     println!("Minted note");
     consume_notes(&mut client, game_account_id, &[note]).await;
-    println!("Player account consumed note");
     println!("game account created ******************************************");
 
+    // here we will send note for shuffling and encryption
     let sender_account_id = game_account_id;
-
-    // here we will invoke player account to generate priv key
+    let target_account_id = AccountId::try_from(player_account_ids[0]).unwrap();
     let rndm_values:[u64; 10] = [1u64, 2u64, 3u64, 4u64, 5u64, 6u64, 7u64, 8u64, 9u64, 10u64];
-
-    let p_account = create_aze_player_account("rmdn_name".to_string()).await.unwrap();
-    println!("player account created");
-
-    let target_account_id = p_account;
-    // AccountId::try_from(player_account_ids[0]).unwrap();
-
-    let gen_key_data = GenPrivateKeyTransactionData::new(
+    let gen_key_data = GenPrivateKeyTransactionData::new(   // for now as shuffling is not ready
         Asset::Fungible(fungible_asset),
         sender_account_id,
         target_account_id,
@@ -104,34 +96,13 @@ pub async fn create_aze_game_account(
     );
 
     let transaction_template = AzeTransactionTemplate::GenKey(gen_key_data);
-
     let txn_request = client
         .build_aze_key_gen_tx_request(transaction_template)
         .unwrap();
-
     execute_tx_and_sync(&mut client, txn_request.clone()).await;
+    println!("Note sent!");
 
-    let note_id = txn_request.expected_output_notes()[0].id();
-    let note = client.get_input_note(note_id).unwrap();
-
-    let tx_template = TransactionTemplate::ConsumeNotes(target_account_id, vec![note.id()]);
-    let tx_request = client.build_transaction_request(tx_template).unwrap();
-    execute_tx_and_sync(&mut client, tx_request).await;
-
-    println!("Key generated");
-
-    let mut card_points = vec![]; // 2 cards for now
-    card_points.push(keygen([1, 1, 0, 0, 0])); // for now 
-    card_points.push(keygen([1, 2, 0, 0, 0]));
-    let pub_key_agg = keygen([0, 0, 0, 0, 0]); // for now
-    let masking_factor =  Scalar::from_val([1, 1, 1, 1, 1]);// for now
-
-    // Encryption
-    let cipher_card_1 = mask(pub_key_agg, card_points[0], masking_factor);
-    println!("Cipher card 1 --> {:?}\n", cipher_card_1);
-    let cipher_card_2 = mask(pub_key_agg, card_points[1], masking_factor);
-    println!("Cipher card 2 --> {:?}", cipher_card_2);
-
+    // Distribute cards, i think we should remove it from here?
     let mut cards = vec![];
 
     for i in 1..2 * player_account_ids.len() + 1 {
@@ -155,11 +126,11 @@ pub async fn create_aze_game_account(
         );
         let transaction_template = AzeTransactionTemplate::SendCard(sendcard_txn_data);
 
-        let txn_request = client
-            .build_aze_send_card_tx_request(transaction_template)
-            .unwrap();
+        // let txn_request = client
+        //     .build_aze_send_card_tx_request(transaction_template)
+        //     .unwrap();
 
-        execute_tx_and_sync(&mut client, txn_request.clone()).await;
+        // execute_tx_and_sync(&mut client, txn_request.clone()).await;
 
         println!("Executed and synced with node");
     }
@@ -195,22 +166,6 @@ pub async fn create_aze_player_account(
         &AuthSecretKey::RpoFalcon512(key_pair),
     );
 
-    let target_account_id = player_account.id(); // for now
-    // get the masked cards, hardcoded for now
-    let mut card_points = vec![]; // 2 cards for now
-    card_points.push(keygen([1, 1, 0, 0, 0])); // for now 
-    card_points.push(keygen([1, 2, 0, 0, 0]));
-    let pub_key_agg = keygen([0, 0, 0, 0, 0]); // for now
-    let masking_factor =  Scalar::from_val([1, 1, 1, 1, 1]);// for now
-    let cipher_card_1 = mask(pub_key_agg, card_points[0], masking_factor);
-    let cipher_card_2 = mask(pub_key_agg, card_points[1], masking_factor);
-
-    // remask
-    let remasked_card_1 = remask(pub_key_agg, cipher_card_1, masking_factor);
-    println!("Remasked card 1 --> {:?}\n", remasked_card_1);
-    let remasked_card_2 = remask(pub_key_agg, cipher_card_2, masking_factor);
-    println!("Remasked card 2 --> {:?}", remasked_card_2);
-
     Ok(player_account.id())
 }
 
@@ -227,4 +182,68 @@ pub async fn consume_game_notes(account_id: AccountId) {
         println!("Waiting...");
         sleep(Duration::from_secs(5)).await;
     }
+}
+
+pub async fn enc_dec_action(account_id: AccountId) {
+    // check account storage for a slot
+    // if slot == 1, mask. if slot == 2/3/4, remask
+
+    if account_id == AccountId::try_from(1085128954612151006).unwrap() { // for now
+        // 2 mock cards
+        let mut card_points = vec![]; // 2 cards for now
+        card_points.push(keygen([1, 1, 0, 0, 0])); // for now 
+        card_points.push(keygen([1, 2, 0, 0, 0]));
+        let pub_key_agg = keygen([0, 0, 0, 0, 0]); // for now
+        let masking_factor =  Scalar::from_val([1, 1, 1, 1, 1]);// for now
+
+        // Mask
+        let cipher_card_1 = mask(pub_key_agg, card_points[0], masking_factor);
+        println!("Cipher card 1 --> {:?}\n", cipher_card_1);
+        let cipher_card_2 = mask(pub_key_agg, card_points[1], masking_factor);
+        println!("Cipher card 2 --> {:?}", cipher_card_2);
+        return
+    }
+
+    // 2 mock masked cards
+    let mut card_points = vec![]; // 2 cards for now
+    card_points.push(keygen([1, 1, 0, 0, 0])); // for now 
+    card_points.push(keygen([1, 2, 0, 0, 0]));
+    let pub_key_agg = keygen([0, 0, 0, 0, 0]); // for now
+    let masking_factor =  Scalar::from_val([1, 1, 1, 1, 1]);// for now
+    let cipher_card_1 = mask(pub_key_agg, card_points[0], masking_factor);
+    let cipher_card_2 = mask(pub_key_agg, card_points[1], masking_factor);
+
+    // remask
+    let remasked_card_1 = remask(pub_key_agg, cipher_card_1, masking_factor);
+    println!("Remasked card 1 --> {:?}\n", remasked_card_1);
+    let remasked_card_2 = remask(pub_key_agg, cipher_card_2, masking_factor);
+    println!("Remasked card 2 --> {:?}", remasked_card_2);
+
+    // if slot == 2/3, send note to next player
+    // if slot == 4, do nothing as it is the last player
+    let mut client: AzeClient = create_aze_client();
+    let (faucet_account, _) = client
+        .new_account(AccountTemplate::FungibleFaucet {
+            token_symbol: TokenSymbol::new("MATIC").unwrap(),
+            decimals: 8,
+            max_supply: 1_000_000_000,
+            storage_mode: AccountStorageMode::Local,
+        })
+        .unwrap();
+    let fungible_asset = FungibleAsset::new(faucet_account.id(), SMALL_BUY_IN_AMOUNT as u64).unwrap();
+    let target_account_id = AccountId::try_from(account_id).unwrap();
+    let rndm_values:[u64; 10] = [1u64, 2u64, 3u64, 4u64, 5u64, 6u64, 7u64, 8u64, 9u64, 10u64];
+
+    let gen_key_data = GenPrivateKeyTransactionData::new(   // for now as shuffling is not ready
+        Asset::Fungible(fungible_asset),
+        account_id,
+        target_account_id,
+        rndm_values,
+    );
+    let transaction_template = AzeTransactionTemplate::GenKey(gen_key_data);
+    let txn_request = client
+        .build_aze_key_gen_tx_request(transaction_template)
+        .unwrap();
+    execute_tx_and_sync(&mut client, txn_request.clone()).await;
+    println!("Note sent!");
 }
