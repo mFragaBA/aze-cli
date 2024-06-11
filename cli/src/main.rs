@@ -2,8 +2,10 @@ mod accounts;
 mod action;
 mod actions;
 mod init;
+mod consume_notes;
+mod peek_hand;
 mod register;
-use self::{action::ActionCmd, init::InitCmd, register::RegisterCmd};
+use self::{ action::ActionCmd, init::InitCmd, consume_notes::ConsumeNotesCmd, register::RegisterCmd, peek_hand::PeekHandCmd };
 use clap::Parser;
 
 #[derive(Parser)]
@@ -15,9 +17,11 @@ struct Args {
 
 #[derive(Parser, Debug, Clone)]
 enum Commands {
-    Init(InitCmd),
-    Register(RegisterCmd),
     Action(ActionCmd),
+    ConsumeNotes(ConsumeNotesCmd),
+    Init(InitCmd),
+    PeekHand(PeekHandCmd),
+    Register(RegisterCmd),
 }
 
 #[tokio::main]
@@ -27,6 +31,16 @@ async fn main() {
     match args.cmd {
         Commands::Init(init_cmd) => {
             if let Err(error) = init_cmd.execute().await {
+                println!("{}", error);
+            }
+        }
+        Commands::ConsumeNotes(consume_notes_cmd) => {
+            if let Err(error) = consume_notes_cmd.execute().await {
+                println!("{}", error);
+            }
+        }
+        Commands::PeekHand(peek_hand_cmd) => {
+            if let Err(error) = peek_hand_cmd.execute().await {
                 println!("{}", error);
             }
         }

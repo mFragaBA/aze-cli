@@ -1,5 +1,5 @@
-use crate::accounts::{ create_aze_game_account, consume_game_notes };
-use aze_lib::constants::{ SMALL_BLIND_AMOUNT, NO_OF_PLAYERS, BUY_IN_AMOUNT };
+use crate::accounts::{ create_aze_game_account, consume_game_notes, send_note };
+use aze_lib::constants::{BUY_IN_AMOUNT, NO_OF_PLAYERS, SMALL_BLIND_AMOUNT};
 use aze_types::accounts::AccountCreationError;
 use clap::{ ValueEnum, Parser };
 use cronjob::CronJob;
@@ -10,9 +10,8 @@ use figment::{
 use miden_objects::accounts:: AccountId;
 use serde::Deserialize;
 use std::path::PathBuf;
-use tokio::time::{sleep, Duration};
 use tokio::task::LocalSet;
-use tokio_cron_scheduler::{Job, JobScheduler, JobSchedulerError};
+use tokio::time::{ sleep, Duration };
 
 #[derive(ValueEnum, Debug, Clone)]
 enum GameType {
@@ -59,14 +58,17 @@ impl InitCmd {
             }
         }
 
-        match create_aze_game_account(player_ids, small_blind_amount, buy_in_amount).await {
+        match create_aze_game_account(player_ids.clone(), small_blind_amount, buy_in_amount).await {
             Ok(game_account_id) => {
                 println!("Game account created: {:?}", game_account_id);
                 let local_set = LocalSet::new();
                 local_set.run_until(async {
                     loop {
-                        println!("Calledn every 5 seconds");
                         consume_game_notes(game_account_id).await;
+                        // check slot for phase change
+                        // if phase change, send cards for unmasking
+                        let player_account_id = AccountId::try_from(player_ids[0]).unwrap();
+                        send_note(game_account_id, player_account_id).await;
                         sleep(Duration::from_secs(5)).await;
                     }
                 }).await;

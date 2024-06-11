@@ -1,0 +1,37 @@
+use crate::accounts::{ consume_game_notes, enc_action, dec_action, p2p_unmask_flow };
+use clap::Parser;
+use miden_objects::accounts::AccountId;
+use tokio::time::{sleep, Duration};
+use tokio::task::LocalSet;
+
+#[derive(Debug, Clone, Parser)]
+pub struct ConsumeNotesCmd {
+    #[arg(short, long, default_value_t = 0)]
+    player_id: u64,
+
+    #[arg(short, long, default_value_t = 0)] // temporary
+    slot: u8,
+}
+
+impl ConsumeNotesCmd {
+    pub async fn execute(&self) -> Result<(), String> {
+        let account_id = AccountId::try_from(self.player_id).unwrap();
+        let local_set = LocalSet::new();
+                local_set.run_until(async {
+                    loop {
+                        consume_game_notes(account_id).await;
+                        // check here if note triggered enc/dec action
+                        // if slot == 1, enc. if slot == 2, dec., if slot == 3, p2p_unmask_flow
+                        if self.slot == 1 {
+                            enc_action(account_id).await;
+                        } else if self.slot == 2 {
+                            dec_action(account_id).await;
+                        } else if self.slot == 3 {
+                            p2p_unmask_flow(account_id).await;
+                        }
+                        sleep(Duration::from_secs(5)).await;
+                    }
+                }).await;
+        Ok(())
+    }
+}
