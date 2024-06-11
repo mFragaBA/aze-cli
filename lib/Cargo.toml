@@ -9,11 +9,17 @@ edition = "2021"
 uuid = { version = "1.6.1", features = ["serde", "v4"], optional = true }
 figment = { version = "0.10", features = ["toml", "env"] }
 rand = { version = "0.8.5" }
-miden-lib = { git = "https://github.com/0xPolygonMiden/miden-base.git", branch="dominik_spply_account_delta_storage_maps", features= ["concurrent","testing"] }
-miden-tx = { git = "https://github.com/0xPolygonMiden/miden-base.git", branch="dominik_spply_account_delta_storage_maps", default-features = false }
-miden-client = { version = "0.3.0", features= ["concurrent","testing"] }
-miden-objects = { git = "https://github.com/0xPolygonMiden/miden-base.git", branch="dominik_spply_account_delta_storage_maps", default-features = false }
+
+# miden-tx = { git = "https://github.com/0xPolygonMiden/miden-base.git", branch="dominik_spply_account_delta_storage_maps", default-features = false }
+miden-tx = { version = "0.3.0", default-features = false }
 aze-types = { path = "../types" }
+miden-client = { version = "0.3.0", features= ["concurrent","testing"] }
+miden-lib = { version = "0.3.0", features= ["concurrent","testing"] }
+miden-objects = { version = "0.3", default-features = false }
+
+[patch.crates-io]
+miden-lib = { git = "https://github.com/0xPolygonMiden/miden-base.git", branch="dominik_spply_account_delta_storage_maps", features= ["concurrent","testing"] }
+miden-objects = { git = "https://github.com/0xPolygonMiden/miden-base.git", branch="dominik_spply_account_delta_storage_maps", default-features = false }
 
 [dev-dependencies]
 
