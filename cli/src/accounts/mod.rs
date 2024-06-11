@@ -189,14 +189,14 @@ pub async fn enc_action(account_id: AccountId) {
     // check account storage for a slot
     // if slot == 1, mask. if slot == 2/3/4, remask
 
-    if account_id == AccountId::try_from(1085128954612151006).unwrap() { // for now
-        // 2 mock cards
-        let mut card_points = vec![]; // 2 cards for now
-        card_points.push(keygen([1, 1, 0, 0, 0])); // for now 
-        card_points.push(keygen([1, 2, 0, 0, 0]));
-        let pub_key_agg = keygen([0, 0, 0, 0, 0]); // for now
-        let masking_factor =  Scalar::from_val([1, 1, 1, 1, 1]);// for now
+    // 2 mock cards
+    let mut card_points = vec![]; // 2 cards for now
+    card_points.push(keygen(11)); // for now 
+    card_points.push(keygen(12));
+    let pub_key_agg = keygen(123); // for now
+    let masking_factor: u32 = 123;// for now
 
+    if account_id == AccountId::try_from(1085128954612151006).unwrap() { // for now
         // Mask
         let cipher_card_1 = mask(pub_key_agg, card_points[0], masking_factor);
         println!("Cipher card 1 --> {:?}\n", cipher_card_1);
@@ -206,11 +206,6 @@ pub async fn enc_action(account_id: AccountId) {
     }
 
     // 2 mock masked cards
-    let mut card_points = vec![]; // 2 cards for now
-    card_points.push(keygen([1, 1, 0, 0, 0])); // for now 
-    card_points.push(keygen([1, 2, 0, 0, 0]));
-    let pub_key_agg = keygen([0, 0, 0, 0, 0]); // for now
-    let masking_factor =  Scalar::from_val([1, 1, 1, 1, 1]);// for now
     let cipher_card_1 = mask(pub_key_agg, card_points[0], masking_factor);
     let cipher_card_2 = mask(pub_key_agg, card_points[1], masking_factor);
 
@@ -227,10 +222,9 @@ pub async fn enc_action(account_id: AccountId) {
 
 pub async fn dec_action(account_id: AccountId) {
     let players_ids = [317826241474458840, 359196095275670923, 359196095275670923, 359196095275670923];
-    let pub_key_agg = keygen([0, 0, 0, 0, 0]); // for now
-    let masking_factor =  Scalar::from_val([1, 1, 1, 1, 1]);// for now
+    let pub_key_agg = keygen(123); // for now
+    let masking_factor: u32 = 123;// for now
     let masked_cards = get_mock_cards(); // 2 cards for now
-
     // check account storage for a slot
     // if slot == 1, do final-unmask else inter-unmask
     if account_id == AccountId::try_from(players_ids[0]).unwrap() {
@@ -255,10 +249,11 @@ pub async fn dec_action(account_id: AccountId) {
 }
 
 fn get_mock_cards() -> Vec<CardCipher> {
-    let pub_key_agg = keygen([0, 0, 0, 0, 0]); // for now
-    let masking_factor =  Scalar::from_val([1, 1, 1, 1, 1]);// for now
-    let cipher_card_1 = mask(pub_key_agg, keygen([1, 1, 0, 0, 0]), masking_factor);
-    let cipher_card_2 = mask(pub_key_agg, keygen([1, 2, 0, 0, 0]), masking_factor);
+    // 2 mock cards
+    let pub_key_agg = keygen(123); // for now
+    let masking_factor: u32 = 123;// for now
+    let cipher_card_1 = mask(pub_key_agg, keygen(11), masking_factor);
+    let cipher_card_2 = mask(pub_key_agg, keygen(12), masking_factor);
     let mut masked_cards = vec![]; // 2 cards for now
     masked_cards.push(cipher_card_1);
     masked_cards.push(cipher_card_2);
