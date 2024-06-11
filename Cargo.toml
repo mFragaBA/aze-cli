@@ -5,3 +5,4 @@ members = [ "cli", "lib", "types"]
 [patch.crates-io]
 miden-lib = { git = "https://github.com/0xPolygonMiden/miden-base.git", branch="dominik_spply_account_delta_storage_maps", features= ["concurrent","testing"] }
 miden-objects = { git = "https://github.com/0xPolygonMiden/miden-base.git", branch="dominik_spply_account_delta_storage_maps", default-features = false }
+miden-tx = { git = "https://github.com/0xPolygonMiden/miden-base.git", branch="dominik_spply_account_delta_storage_maps", default-features = false }
