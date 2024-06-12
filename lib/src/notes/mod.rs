@@ -75,19 +75,15 @@ pub fn create_key_gen_note<
     assets: Vec<Asset>,
     note_type: NoteType,
     mut rng: RpoRandomCoin,
-    element: [u64; 10],
+    masking_factor: u8,
 ) -> Result<Note, NoteError> {
     let note_script = include_str!("../../contracts/notes/game/genkey.masm");
     // TODO: hide it under feature flag debug (.with_debug_mode(true))
     let script_ast = ProgramAst::parse(note_script).unwrap();
     let note_script = client.compile_note_script(script_ast, vec![]).unwrap();
 
-    // let card_1 = cards[0];
-    // let card_2 = cards[1];
-
-    let mut inputs = element.iter().map(|&x| Felt::new(x)).collect::<Vec<Felt>>();
-    // [card_1.as_slice(), card_2.as_slice()].concat();
-    println!("card Inputs: {:?}", inputs);
+    let mut inputs = vec![Felt::from(masking_factor)];
+    println!("Inputs: {:?}", inputs);
 
     let note_inputs = NoteInputs::new(inputs).unwrap();
     let tag = NoteTag::from_account_id(target_account_id, NoteExecutionHint::Local)?;
