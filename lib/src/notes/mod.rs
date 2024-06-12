@@ -22,6 +22,7 @@ use miden_objects::{
     transaction::{InputNote, TransactionArgs},
     Felt, NoteError, Word, ZERO,
 };
+use miden_tx::TransactionExecutor;
 use miden_tx::TransactionAuthenticator;
 use std::rc::Rc;
 
