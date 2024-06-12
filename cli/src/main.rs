@@ -57,7 +57,7 @@ async fn main() {
             }
         }
         Commands::Stats(stats_cmd) => {
-            if let Err(error) = stats_cmd.execute() {
+            if let Err(error) = stats_cmd.execute(&ws_config_path).await {
                 println!("{}", error);
             }
         }

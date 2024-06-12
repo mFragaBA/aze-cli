@@ -62,7 +62,6 @@ impl InitCmd {
         match create_aze_game_account(player_ids, small_blind_amount, buy_in_amount).await {
             Ok(game_account_id) => {
                 println!("Game account created: {:?}", game_account_id);
-
                 // start wss server in new thread and stores url in ws_config.json for future use i.e sending messages
                 let config_clone = ws_config.clone();
                 tokio::spawn(async move {

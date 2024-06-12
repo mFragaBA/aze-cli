@@ -185,9 +185,20 @@ pub async fn setup_accounts(
 }
 
 #[derive(Serialize)]
-struct PublishRequest {
+pub struct PublishRequest {
     game_id: String,
     event: String,
+}
+#[derive(Serialize)]
+pub struct StatRequest {
+    game_id: String,
+}
+#[derive(Serialize, Deserialize)]
+pub struct StatResponse {
+    pub community_cards: Vec<u64>,
+    pub player_balances: Vec<u64>,
+    pub current_player: u64,
+    pub pot_value: u64,
 }
 
 // Config for saving broadcast url
@@ -222,7 +233,7 @@ pub async fn broadcast_message(game_id: String, url: String, message: String) ->
     let base_url = format!("http://{}", url.host_str().unwrap());
     let port = url.port().map(|p| format!(":{}", p)).unwrap_or_default();
     let publish_url = format!("{}{}{}", base_url, port, "/publish");
-
+    
     let request_body = PublishRequest {
         game_id,
         event: message,
@@ -245,4 +256,29 @@ pub async fn broadcast_message(game_id: String, url: String, message: String) ->
     }
 }
 
+pub async fn get_stats(game_id: String, url: String) -> Result<StatResponse, Box<dyn Error>>{
+    let client = httpClient::new();
+    let url = url::Url::parse(&url).unwrap();
+    let base_url = format!("http://{}", url.host_str().unwrap());
+    let port = url.port().map(|p| format!(":{}", p)).unwrap_or_default();
+    let stat_url = format!("{}{}{}", base_url, port, "/stats");
 
+    let request_body = StatRequest {
+        game_id
+    };
+
+    let response = client
+        .post(&stat_url)
+        .json(&request_body)
+        .send()
+        .await?;
+
+    if response.status().is_success() {
+        Ok(response.json().await? )
+    }else {
+        let status = response.status();
+        let error_text = response.text().await?;
+        eprintln!("Failed to get stats: {} - {}", status, error_text);
+        Err(format!("Failed to get stats: {} - {}", status, error_text).into())
+    }
+}
