@@ -296,3 +296,14 @@ pub async fn send_note(sender_account_id: AccountId, target_account_id: AccountI
     execute_tx_and_sync(&mut client, txn_request.clone()).await;
     println!("Note sent!");
 }
+
+pub async fn p2p_unmask_flow(sender_account_id: AccountId) -> Result<(), String> {
+    let players_ids = [359196095275670923, 359196095275670923, 317826241474458840];
+
+    for player_id in players_ids.iter() {
+        let receiver_account_id = AccountId::try_from(*player_id).unwrap();
+        send_note(sender_account_id, receiver_account_id).await;
+    }
+
+    Ok(())
+}

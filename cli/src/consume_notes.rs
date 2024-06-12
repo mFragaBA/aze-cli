@@ -1,4 +1,4 @@
-use crate::accounts::{ consume_game_notes, enc_action, dec_action };
+use crate::accounts::{ consume_game_notes, enc_action, dec_action, p2p_unmask_flow };
 use clap::Parser;
 use miden_objects::accounts::AccountId;
 use tokio::time::{sleep, Duration};
@@ -21,12 +21,14 @@ impl ConsumeNotesCmd {
                     loop {
                         consume_game_notes(account_id).await;
                         // check here if note triggered enc/dec action
-                        // if slot == 1, enc. if slot == 2, dec.
+                        // if slot == 1, enc. if slot == 2, dec., if slot == 3, p2p_unmask_flow
                         if self.slot == 1 {
                             enc_action(account_id).await;
                         } else if self.slot == 2 {
                             dec_action(account_id).await;
-                        };
+                        } else if self.slot == 3 {
+                            p2p_unmask_flow(account_id).await;
+                        }
                         sleep(Duration::from_secs(5)).await;
                     }
                 }).await;
