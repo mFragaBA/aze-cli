@@ -41,7 +41,7 @@ use miden_objects::{
     Felt, Word,
 };
 use miden_tx::utils::Serializable;
-use miden_tx::TransactionAuthenticator;
+use miden_tx::host::TransactionAuthenticator;
 use rand::{rngs::ThreadRng, Rng};
 
 pub type AzeClient = Client<
