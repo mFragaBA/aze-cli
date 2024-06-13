@@ -54,8 +54,8 @@ pub async fn create_aze_game_account(
             Some(slot_data),
         )
         .unwrap();
-    
-    Ok(game_account_id)
+
+    Ok(game_account.id())
 }
 
 pub async fn create_aze_player_account(
@@ -191,7 +191,6 @@ pub async fn send_note(sender_account_id: AccountId, target_account_id: AccountI
         })
         .unwrap();
     let fungible_asset = FungibleAsset::new(faucet_account.id(), SMALL_BUY_IN_AMOUNT as u64).unwrap();
-    let masking_factor = 9_u8;
 
     let note = mint_note(
         &mut client,
@@ -207,7 +206,6 @@ pub async fn send_note(sender_account_id: AccountId, target_account_id: AccountI
         Asset::Fungible(fungible_asset),
         sender_account_id,
         target_account_id,
-        masking_factor,
     );
     let transaction_template = AzeTransactionTemplate::GenKey(gen_key_data);
     let txn_request = client

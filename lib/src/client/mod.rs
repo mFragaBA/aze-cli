@@ -64,7 +64,6 @@ pub struct GenPrivateKeyTransactionData {
     asset: Asset,
     sender_account_id: AccountId,
     target_account_id: AccountId,
-    masking_factor: u8,
 }
 
 #[derive(Clone)]
@@ -112,13 +111,11 @@ impl GenPrivateKeyTransactionData {
         asset: Asset,
         sender_account_id: AccountId,
         target_account_id: AccountId,
-        masking_factor: u8,
     ) -> Self {
         Self {
             asset,
             sender_account_id,
             target_account_id,
-            masking_factor,
         }
     }
 
@@ -509,13 +506,12 @@ impl<N: NodeRpcClient, R: FeltRng, S: Store, A: TransactionAuthenticator> AzeGam
         let account_id = transaction_template.account_id();
         let account_auth = self.store().get_account_auth(account_id)?;
 
-        let (sender_account_id, target_account_id, masking_factor, asset) = match transaction_template {
+        let (sender_account_id, target_account_id, asset) = match transaction_template {
             AzeTransactionTemplate::GenKey(GenPrivateKeyTransactionData {
                 asset,
                 sender_account_id,
                 target_account_id,
-                masking_factor,
-            }) => (sender_account_id, target_account_id, masking_factor, asset),
+            }) => (sender_account_id, target_account_id, asset),
             _ => panic!("Invalid transaction template"),
         };
 
@@ -528,7 +524,6 @@ impl<N: NodeRpcClient, R: FeltRng, S: Store, A: TransactionAuthenticator> AzeGam
             [asset].to_vec(),
             NoteType::Public,
             random_coin,
-            masking_factor,
         )?;
 
         let recipient = created_note
