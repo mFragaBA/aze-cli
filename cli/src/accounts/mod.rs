@@ -45,18 +45,6 @@ pub async fn create_aze_game_account(
         PLAYER_INITIAL_BALANCE,
     );
 
-    let (faucet_account, _) = client
-        .new_account(AccountTemplate::FungibleFaucet {
-            token_symbol: TokenSymbol::new("MATIC").unwrap(),
-            decimals: 8,
-            max_supply: 1_000_000_000,
-            storage_mode: AccountStorageMode::Local,
-        })
-        .unwrap();
-
-    let faucet_account_id = faucet_account.id();
-    let fungible_asset = FungibleAsset::new(faucet_account_id, SMALL_BUY_IN_AMOUNT as u64).unwrap();
-
     let (game_account, _) = client
         .new_game_account(
             AzeAccountTemplate::GameAccount {
@@ -66,75 +54,7 @@ pub async fn create_aze_game_account(
             Some(slot_data),
         )
         .unwrap();
-
-    let game_account_id = game_account.id();
-    let game_account_storage = game_account.storage();
-
-    println!("Account created: {:?}", game_account_id);
-
-    println!("First client consuming note");
-    let note = mint_note(
-        &mut client,
-        game_account_id,
-        faucet_account_id,
-        NoteType::Public,
-    )
-    .await;
-    println!("Minted note");
-    consume_notes(&mut client, game_account_id, &[note]).await;
-    println!("game account created ******************************************");
-
-    // here we will send note for shuffling and encryption
-    let sender_account_id = game_account_id;
-    let target_account_id = AccountId::try_from(player_account_ids[0]).unwrap();
-    let rndm_values:[u64; 10] = [1u64, 2u64, 3u64, 4u64, 5u64, 6u64, 7u64, 8u64, 9u64, 10u64];
-    let gen_key_data = GenPrivateKeyTransactionData::new(   // for now as shuffling is not ready
-        Asset::Fungible(fungible_asset),
-        sender_account_id,
-        target_account_id,
-        rndm_values,
-    );
-
-    let transaction_template = AzeTransactionTemplate::GenKey(gen_key_data);
-    let txn_request = client
-        .build_aze_key_gen_tx_request(transaction_template)
-        .unwrap();
-    execute_tx_and_sync(&mut client, txn_request.clone()).await;
-    println!("Note sent!");
-
-    // Distribute cards, i think we should remove it from here?
-    let mut cards = vec![];
-
-    for i in 1..2 * player_account_ids.len() + 1 {
-        let slot_index = i;
-        let card = game_account_storage.get_item(slot_index as u8);
-        println!("Card from game storage {:?}", card);
-        cards.push(card.into());
-    }
-
-    println!("Start sending cards to players");
-    for (i, _) in player_account_ids.iter().enumerate() {
-        let target_account_id = AccountId::try_from(player_account_ids[i]).unwrap();
-        println!("Target account id {:?}", target_account_id);
-
-        let input_cards = [cards[2 * i], cards[2 * i + 1]];
-        let sendcard_txn_data = SendCardTransactionData::new(
-            Asset::Fungible(fungible_asset),
-            sender_account_id,
-            target_account_id,
-            &input_cards,
-        );
-        let transaction_template = AzeTransactionTemplate::SendCard(sendcard_txn_data);
-
-        let txn_request = client
-            .build_aze_send_card_tx_request(transaction_template)
-            .unwrap();
-
-        execute_tx_and_sync(&mut client, txn_request.clone()).await;
-
-        println!("Executed and synced with node");
-    }
-
+    
     Ok(game_account_id)
 }
 
@@ -271,7 +191,7 @@ pub async fn send_note(sender_account_id: AccountId, target_account_id: AccountI
         })
         .unwrap();
     let fungible_asset = FungibleAsset::new(faucet_account.id(), SMALL_BUY_IN_AMOUNT as u64).unwrap();
-    let rndm_values:[u64; 10] = [1u64, 2u64, 3u64, 4u64, 5u64, 6u64, 7u64, 8u64, 9u64, 10u64];
+    let masking_factor = 9_u8;
 
     let note = mint_note(
         &mut client,
@@ -287,7 +207,7 @@ pub async fn send_note(sender_account_id: AccountId, target_account_id: AccountI
         Asset::Fungible(fungible_asset),
         sender_account_id,
         target_account_id,
-        rndm_values,
+        masking_factor,
     );
     let transaction_template = AzeTransactionTemplate::GenKey(gen_key_data);
     let txn_request = client
