@@ -1,51 +1,103 @@
-proc.shuffle
+use.std::math::ecgfp5::group
+use.miden::account
+use.miden::note
+use.miden::contracts::wallets::basic->wallet
 
+const.G=7
+const.SECRET_KEY_SLOT=53
+const.PUBLIC_KEY_SLOT=54
+const.MASKING_FACTOR_SLOT=55
+const.TOTAL_CARDS=52
+const.SUIT_SIZE=13
+
+proc.encrypt_ca
+    push.MASKING_FACTOR_SLOT exec.account::get_item
+    drop drop drop
+    # => [masking_factor]
+    dup push.1 gt assert
+    push.G swap exp
+end
+
+proc.encrypt_cb
+    # => [card_plaintext M]
+    push.MASKING_FACTOR_SLOT exec.account::get_item
+    drop drop drop
+    # => [masking_factor, M]
+    push.PUBLIC_KEY_SLOT exec.account::get_item
+    drop drop drop
+    # => [public_key, masking_factor, M]
+    swap
+    # Check that 1 < r.
+    dup push.1 gt assert
+    exp
+    mul 
+end
+
+proc.encrypt_shuffle
+    # => [card_plaintext]
+    loc_store.0
+    exec.encrypt_ca
+    # => [ca]
+    loc_store.1 loc_load.0
+    exec.encrypt_cb
+    # => [cb]
+    loc_load.1
+    # => [ca, cb]
+    swap push.0 dup
+    # => [0, 0, cb, ca]
+
+    # Shuffle
+    loc_load.0
+    # => [pre_shuffle_index, 0, 0, cb, ca]
+    push.MASKING_FACTOR_SLOT exec.account::get_item 
+    drop drop drop
+    # => [mf, pre_shuffle_index, 0, 0, cb, ca]
+    add
+    # => [post_shuffle_index, 0, 0, cb, ca]
+    dup push.TOTAL_CARDS gt
+
+    while.true
+        push.TOTAL_CARDS sub
+        dup push.TOTAL_CARDS gt
+    end
+    # => [post_shuffle_index, 0, 0, cb, ca]
+
+    exec.account::set_item
+    dropw dropw
 end
 
 begin 
-    # Card 1 
-    # card index 
-    push.10 exec.note::get_inputs drop
-    mem_loadw mem_store.0 drop drop drop
+    dropw
+    # store index
+    push.1 exec.note::get_inputs drop
+    # => [des_pointer]
+    mem_store.0
 
-    # Ca
-    push.0 exec.note::get_inputs drop 
-    push.1 exec.note::get_inputs drop 
-    push.2 exec.note::get_inputs drop 
-    push.3 exec.note::get_inputs drop 
-    push.4 exec.note::get_inputs drop 
-    # => [ptr5, ptr4, ptr3, ptr2, ptr1]
-    call.shuffle
+    repeat.SUIT_SIZE
 
-    # Cb
-    push.5 exec.note::get_inputs drop 
-    push.6 exec.note::get_inputs drop 
-    push.7 exec.note::get_inputs drop 
-    push.8 exec.note::get_inputs drop 
-    push.9 exec.note::get_inputs drop 
-    # => [ptr5, ptr4, ptr3, ptr2, ptr1]
-    call.shuffle
+        repeat.4
+            mem_load.0 mem_load
+            # => [c_1_plaintext]
+            call.encrypt_shuffle
+            # => [...]
+            mem_load.0 mem_loadw
+            # => [c_4_plaintext, c_3_plaintext, c_2_plaintext, c_1_plaintext]
+            movup.3 drop push.0
+            # => [0, c_4_plaintext, c_3_plaintext, c_2_plaintext]
+            mem_load.0 mem_storew dropw
+            # => [...]
+        end
 
-    # Card 2
-    # card index
-    push.20 exec.note::get_inputs drop
-    mem_loadw mem_store.0 drop drop drop
+        mem_load.0 push.1 add
+        mem_store.0
+    end
 
-    # Ca
-    push.10 exec.note::get_inputs drop 
-    push.11 exec.note::get_inputs drop 
-    push.12 exec.note::get_inputs drop 
-    push.13 exec.note::get_inputs drop 
-    push.14 exec.note::get_inputs drop 
-    # => [ptr5, ptr4, ptr3, ptr2, ptr1]
-    call.shuffle
+    exec.note::get_assets drop mem_loadw
+    # => [ASSET, ...]
 
-    # Cb
-    push.15 exec.note::get_inputs drop 
-    push.16 exec.note::get_inputs drop 
-    push.17 exec.note::get_inputs drop 
-    push.18 exec.note::get_inputs drop 
-    push.19 exec.note::get_inputs drop 
-    # => [ptr5, ptr4, ptr3, ptr2, ptr1]
-    call.shuffle
+    # load the asset and add it to the account
+    call.wallet::receive_asset
+    # => [...]
+
+    dropw
 end

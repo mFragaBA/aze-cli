@@ -9,7 +9,7 @@ use miden_objects::{
     AccountError, Felt, FieldElement, Word, ZERO,
 };
 
-use crate::constants::{ PLAYER_STATS_SLOTS, SECRET_KEY_SLOT, DEFAULT_SKEY };
+use crate::constants::{ PLAYER_STATS_SLOTS, SECRET_KEY_SLOT, DEFAULT_SKEY, MASKING_FACTOR_SLOT, DEFAULT_MASKING_FACTOR };
 use crate::storage::GameStorageSlotData;
 use miden_lib::{transaction::TransactionKernel, AuthScheme};
 
@@ -299,6 +299,13 @@ pub fn create_basic_aze_player_account(
                 slot: StorageSlot {
                     slot_type: StorageSlotType::Value { value_arity: 0 },
                     value: [Felt::from(DEFAULT_SKEY), Felt::ZERO, Felt::ZERO, Felt::ZERO],
+                },
+            },
+            SlotItem {
+                index: MASKING_FACTOR_SLOT,
+                slot: StorageSlot {
+                    slot_type: StorageSlotType::Value { value_arity: 0 },
+                    value: [Felt::from(DEFAULT_MASKING_FACTOR), Felt::ZERO, Felt::ZERO, Felt::ZERO],
                 },
             }
         ],

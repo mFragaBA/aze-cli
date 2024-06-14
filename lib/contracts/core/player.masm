@@ -5,6 +5,9 @@ use.miden::account
 const.G=7
 const.SECRET_KEY_SLOT=53
 const.PUBLIC_KEY_SLOT=54
+const.MASKING_FACTOR_SLOT=55
+const.TOTAL_CARDS=52
+const.SUIT_SIZE=13
 
 export.receive_cards
     exec.account::set_item
@@ -28,6 +31,71 @@ export.gen_privatekey
 
     padw drop push.PUBLIC_KEY_SLOT
     # => [PUBLIC_KEY_SLOT, 0, 0, 0, G^r]
+    exec.account::set_item
+    dropw dropw
+end
+
+#! Given a random scalar r on the stack, computes the first point Ca of the cyphertext.
+#! Ca is computed using Ca = r*G, G is the generator of the multiplicative cyclic group.
+#! In multiplicative notation this is equivalent to Ca = G^r.
+#!
+export.encrypt_ca
+    push.MASKING_FACTOR_SLOT exec.account::get_item
+    drop drop drop
+    # => [masking_factor]
+    dup push.1 gt assert
+    push.G swap exp
+end
+
+#! Given public key, point H generated using gen_privatekey as a field element and message M,
+#! also a field element, and a random scalar r on stack, again a field element, this routine
+#! computes the second point Cb of the ciphertext as Cb = M + r*H. In multiplicative notation
+#! it will be Cb = H^r * M
+#!
+export.encrypt_cb
+    # => [card_plaintext M]
+    push.MASKING_FACTOR_SLOT exec.account::get_item
+    drop drop drop
+    # => [masking_factor, M]
+    push.PUBLIC_KEY_SLOT exec.account::get_item
+    drop drop drop
+    # => [public_key, masking_factor, M]
+    swap
+    # Check that 1 < r.
+    dup push.1 gt assert
+    exp
+    mul 
+end
+
+export.encrypt_shuffle
+    # => [card_plaintext]
+    loc_store.0
+    exec.encrypt_ca
+    # => [ca]
+    loc_store.1 loc_load.0
+    exec.encrypt_cb
+    # => [cb]
+    loc_load.1
+    # => [ca, cb]
+    swap push.0 dup
+    # => [0, 0, cb, ca]
+
+    # Shuffle
+    loc_load.0
+    # => [pre_shuffle_index, 0, 0, cb, ca]
+    push.MASKING_FACTOR_SLOT exec.account::get_item 
+    drop drop drop
+    # => [mf, pre_shuffle_index, 0, 0, cb, ca]
+    add
+    # => [post_shuffle_index, 0, 0, cb, ca]
+    dup push.TOTAL_CARDS gt
+
+    while.true
+        push.TOTAL_CARDS sub
+        dup push.TOTAL_CARDS gt
+    end
+    # => [post_shuffle_index, 0, 0, cb, ca]
+
     exec.account::set_item
     dropw dropw
 end

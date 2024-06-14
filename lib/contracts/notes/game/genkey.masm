@@ -24,9 +24,6 @@ end
 begin   
     dropw
 
-    push.0 exec.note::get_inputs drop
-    mem_loadw drop drop drop
-
     call.gen_privatekey
     # => [...]
     dropw

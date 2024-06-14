@@ -32,3 +32,5 @@ pub const PLAYER_CARD2_SLOT: u8 = 101;
 // PLAYER ACCOUNT
 pub const SECRET_KEY_SLOT: u8 = 53;
 pub const DEFAULT_SKEY: u8 = 8;
+pub const MASKING_FACTOR_SLOT: u8 = 55;
+pub const DEFAULT_MASKING_FACTOR: u8 = 9;
