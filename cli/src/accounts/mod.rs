@@ -86,7 +86,7 @@ pub async fn create_aze_game_account(
     // here we will send note for shuffling and encryption
     let sender_account_id = game_account_id;
     let target_account_id = create_aze_player_account("player".to_string()).await.unwrap();
-    let shuffle_card_data = ShuffleCardTransactionData::new(   // for now as shuffling is not ready
+    let shuffle_card_data = ShuffleCardTransactionData::new(   
         Asset::Fungible(fungible_asset),
         sender_account_id,
         target_account_id,
@@ -137,6 +137,41 @@ pub async fn create_aze_player_account(
         Some(seed),
         &AuthSecretKey::RpoFalcon512(key_pair),
     );
+
+    // keygen
+    let (faucet_account, _) = client
+        .new_account(AccountTemplate::FungibleFaucet {
+            token_symbol: TokenSymbol::new("MATIC").unwrap(),
+            decimals: 8,
+            max_supply: 1_000_000_000,
+            storage_mode: AccountStorageMode::Local,
+        })
+        .unwrap();
+    let fungible_asset = FungibleAsset::new(faucet_account.id(), SMALL_BUY_IN_AMOUNT as u64).unwrap();
+
+    let note = mint_note(
+        &mut client,
+        player_account.id(),
+        faucet_account.id(),
+        NoteType::Public,
+    )
+    .await;
+    consume_notes(&mut client, player_account.id(), &[note]).await;
+
+    let gen_key_data = GenPrivateKeyTransactionData::new(  
+        Asset::Fungible(fungible_asset),
+        player_account.id(),
+        player_account.id(),
+    );
+    let transaction_template = AzeTransactionTemplate::GenKey(gen_key_data);
+    let txn_request = client
+        .build_aze_key_gen_tx_request(transaction_template)
+        .unwrap();
+    execute_tx_and_sync(&mut client, txn_request.clone()).await;
+    println!("Note sent!");
+    let note_id = txn_request.expected_output_notes()[0].id();
+    let note = client.get_input_note(note_id).unwrap();
+    consume_notes(&mut client, player_account.id(), &[note.try_into().unwrap()]).await;
 
     Ok(player_account.id())
 }
