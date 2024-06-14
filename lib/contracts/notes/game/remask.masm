@@ -7,6 +7,7 @@ const.G=7
 const.SECRET_KEY_SLOT=53
 const.PUBLIC_KEY_SLOT=54
 const.MASKING_FACTOR_SLOT=55
+const.PLAYER_DATA_SLOT=56
 const.TOTAL_CARDS=52
 const.SUIT_SIZE=13
 
@@ -70,6 +71,12 @@ proc.remask_shuffle
     dropw dropw
 end
 
+proc.set_player_data
+    # => [p4, p3, p2, action_type]
+    push.PLAYER_DATA_SLOT exec.account::set_item
+    dropw dropw 
+end
+
 begin 
     dropw
     # store index
@@ -109,6 +116,10 @@ begin
         loc_load.0 push.1 add
         loc_store.0
     end
+
+    loc_load.0 add.1 mem_loadw
+    # => [p4, p3, p2, action_type]
+    call.set_player_data
 
     exec.note::get_assets drop mem_loadw
     # => [ASSET, ...]

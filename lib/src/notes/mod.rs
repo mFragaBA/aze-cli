@@ -101,6 +101,7 @@ pub fn create_shuffle_card_note<R: FeltRng, N: NodeRpcClient, S: Store, A: Trans
     assets: Vec<Asset>,
     note_type: NoteType,
     mut rng: RpoRandomCoin,
+    player_data: [u64; 4],
 ) -> Result<Note, NoteError> {
     let note_script = include_str!("../../contracts/notes/game/shuffle.masm");
     let script_ast = ProgramAst::parse(note_script).unwrap();
@@ -110,8 +111,11 @@ pub fn create_shuffle_card_note<R: FeltRng, N: NodeRpcClient, S: Store, A: Trans
     for card_number in 1..53 {
             cards = [cards, vec![Felt::from(card_number as u8)]].concat();
     }
+    let player_data = player_data.iter().map(|x| Felt::new(*x)).collect::<Vec<Felt>>();
+    let inputs = [cards, player_data].concat();
+    println!("Inputs: {}: {:?}", inputs.len(), inputs);
     
-    let note_inputs = NoteInputs::new(cards).unwrap();
+    let note_inputs = NoteInputs::new(inputs).unwrap();
     let tag = NoteTag::from_account_id(target_account_id, NoteExecutionHint::Local)?;
     let serial_num = rng.draw_word();
     let aux = ZERO;
@@ -131,6 +135,7 @@ pub fn create_remask_note<R: FeltRng, N: NodeRpcClient, S: Store, A: Transaction
     note_type: NoteType,
     mut rng: RpoRandomCoin,
     cards: [[Felt; 4]; 52],
+    player_data: [u64; 4],
 ) -> Result<Note, NoteError> {
     let note_script = include_str!("../../contracts/notes/game/remask.masm");
     let script_ast = ProgramAst::parse(note_script).unwrap();
@@ -141,9 +146,11 @@ pub fn create_remask_note<R: FeltRng, N: NodeRpcClient, S: Store, A: Transaction
         encrypted_cards = [encrypted_cards, vec![card[1]]].concat();
     }
     encrypted_cards = [encrypted_cards, vec![cards[0][0]]].concat();
-    println!("Encrypted Cards: {}: {:?}", encrypted_cards.len(), encrypted_cards);
+    let player_data = player_data.iter().map(|x| Felt::new(*x)).collect::<Vec<Felt>>();
+    let inputs = [encrypted_cards, vec![Felt::ZERO, Felt::ZERO, Felt::ZERO], player_data].concat();
+    println!("Encrypted Cards: {}: {:?}", inputs.len(), inputs);
 
-    let note_inputs = NoteInputs::new(encrypted_cards).unwrap();
+    let note_inputs = NoteInputs::new(inputs).unwrap();
     let tag = NoteTag::from_account_id(target_account_id, NoteExecutionHint::Local)?;
     let serial_num = rng.draw_word();
     let aux = ZERO;

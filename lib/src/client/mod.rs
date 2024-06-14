@@ -72,6 +72,7 @@ pub struct ShuffleCardTransactionData {
     asset: Asset,
     sender_account_id: AccountId,
     target_account_id: AccountId,
+    player_data: [u64; 4],
 }
 
 #[derive(Clone)]
@@ -80,6 +81,7 @@ pub struct RemaskTransactionData {
     sender_account_id: AccountId,
     target_account_id: AccountId,
     cards: [[Felt; 4]; 52],
+    player_data: [u64; 4],
 }
 
 #[derive(Clone)]
@@ -152,11 +154,13 @@ impl ShuffleCardTransactionData {
         asset: Asset,
         sender_account_id: AccountId,
         target_account_id: AccountId,
+        player_data: [u64; 4],
     ) -> Self {
         Self {
             asset,
             sender_account_id,
             target_account_id,
+            player_data,
         }
     }
 }
@@ -170,12 +174,14 @@ impl RemaskTransactionData {
         sender_account_id: AccountId,
         target_account_id: AccountId,
         cards: &[[Felt; 4]; 52],
+        player_data: [u64; 4],
     ) -> Self {
         Self {
             asset,
             sender_account_id,
             target_account_id,
             cards: *cards,
+            player_data,
         }
     }
 }
@@ -675,12 +681,13 @@ impl<N: NodeRpcClient, R: FeltRng, S: Store, A: TransactionAuthenticator> AzeGam
         let account_id = transaction_template.account_id();
         let account_auth = self.store().get_account_auth(account_id)?;
 
-        let (sender_account_id, target_account_id, asset) = match transaction_template {
+        let (sender_account_id, target_account_id, asset, player_data) = match transaction_template {
             AzeTransactionTemplate::ShuffleCard(ShuffleCardTransactionData {
                 asset,
                 sender_account_id,
                 target_account_id,
-            }) => (sender_account_id, target_account_id, asset),
+                player_data,
+            }) => (sender_account_id, target_account_id, asset, player_data),
             _ => panic!("Invalid transaction template"),
         };
 
@@ -693,6 +700,7 @@ impl<N: NodeRpcClient, R: FeltRng, S: Store, A: TransactionAuthenticator> AzeGam
             [asset].to_vec(),
             NoteType::Public,
             random_coin,
+            player_data,
         )?;
 
         let recipient = created_note
@@ -749,13 +757,14 @@ impl<N: NodeRpcClient, R: FeltRng, S: Store, A: TransactionAuthenticator> AzeGam
         let account_id = transaction_template.account_id();
         let account_auth = self.store().get_account_auth(account_id)?;
 
-        let (sender_account_id, target_account_id, asset, cards) = match transaction_template {
+        let (sender_account_id, target_account_id, asset, cards, player_data) = match transaction_template {
             AzeTransactionTemplate::Remask(RemaskTransactionData {
                 asset,
                 sender_account_id,
                 target_account_id,
                 cards,
-            }) => (sender_account_id, target_account_id, asset, cards),
+                player_data,
+            }) => (sender_account_id, target_account_id, asset, cards, player_data),
             _ => panic!("Invalid transaction template"),
         };
 
@@ -769,6 +778,7 @@ impl<N: NodeRpcClient, R: FeltRng, S: Store, A: TransactionAuthenticator> AzeGam
             NoteType::Public,
             random_coin,
             cards,
+            player_data,
         )?;
 
         let recipient = created_note

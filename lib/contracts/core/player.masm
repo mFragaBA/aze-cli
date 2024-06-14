@@ -6,6 +6,7 @@ const.G=7
 const.SECRET_KEY_SLOT=53
 const.PUBLIC_KEY_SLOT=54
 const.MASKING_FACTOR_SLOT=55
+const.PLAYER_DATA_SLOT=56
 const.TOTAL_CARDS=52
 const.SUIT_SIZE=13
 
@@ -158,6 +159,12 @@ export.remask_shuffle
 
     exec.account::set_item
     dropw dropw
+end
+
+export.set_player_data
+    # => [p4, p3, p2, action_type]
+    push.PLAYER_DATA_SLOT exec.account::set_item
+    dropw dropw 
 end
 
 export.basic_wallet::receive_asset

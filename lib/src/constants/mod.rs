@@ -34,3 +34,5 @@ pub const SECRET_KEY_SLOT: u8 = 53;
 pub const DEFAULT_SKEY: u8 = 8;
 pub const MASKING_FACTOR_SLOT: u8 = 55;
 pub const DEFAULT_MASKING_FACTOR: u8 = 9;
+pub const PLAYER_DATA_SLOT: u8 = 56;
+pub const DEFAULT_ACTION_TYPE: u64 = 1;
