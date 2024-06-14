@@ -4,7 +4,8 @@ use aze_lib::client::{
     self, create_aze_client, AzeAccountTemplate, AzeClient, AzeGameMethods, AzeTransactionTemplate,
     SendCardTransactionData,
     GenPrivateKeyTransactionData,
-    ShuffleCardTransactionData
+    ShuffleCardTransactionData,
+    RemaskTransactionData,
 };
 use aze_lib::constants::{
     FIRST_PLAYER_INDEX, HIGHEST_BET, NO_OF_PLAYERS, PLAYER_INITIAL_BALANCE, SMALL_BUY_IN_AMOUNT,
@@ -27,6 +28,7 @@ use miden_objects::{
     assets::{Asset, FungibleAsset},
     crypto::dsa::rpo_falcon512::{PublicKey, SecretKey},
     notes::NoteType,
+    Felt, FieldElement
 };
 use tokio::time::{ sleep, Duration };
 use ecgfp5::scalar::Scalar;
@@ -103,8 +105,35 @@ pub async fn create_aze_game_account(
     consume_notes(&mut client, target_account_id, &[note.try_into().unwrap()]).await;
 
     let (player_account, _) = client.get_account(target_account_id).unwrap();
-    for slot in 1..57 {
-        println!("Slot {}: {:?}", slot, player_account.storage().get_item(slot));
+    let mut cards: [[Felt; 4]; 52] = [[Felt::ZERO; 4]; 52];
+    for (i, slot) in (1..53).enumerate() {
+        let card_digest = player_account.storage().get_item(slot);
+        cards[i] = card_digest.into();
+    }
+
+    // send remask note
+    let target2_account_id = create_aze_player_account("player".to_string()).await.unwrap();
+    let remask_data = RemaskTransactionData::new(   
+        Asset::Fungible(fungible_asset),
+        target_account_id,
+        target2_account_id,
+        &cards,
+    );
+    let transaction_template = AzeTransactionTemplate::Remask(remask_data);
+    let txn_request = client
+        .build_aze_remask_tx_request(transaction_template)
+        .unwrap();
+    execute_tx_and_sync(&mut client, txn_request.clone()).await;
+    println!("Note sent!");
+    let note_id = txn_request.expected_output_notes()[0].id();
+    let note = client.get_input_note(note_id).unwrap();
+    consume_notes(&mut client, target2_account_id, &[note.try_into().unwrap()]).await;
+
+    let (player_account, _) = client.get_account(target2_account_id).unwrap();
+    for slot in 1..53 {
+        let card_digest = player_account.storage().get_item(slot);
+        let card = card_digest.as_elements().to_vec();
+        println!("Card {:?} --> {:?}", slot, card);
     }
     
     Ok(game_account_id)

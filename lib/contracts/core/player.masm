@@ -100,6 +100,66 @@ export.encrypt_shuffle
     dropw dropw
 end
 
+export.remask_ca
+    # => [Ca]
+    push.MASKING_FACTOR_SLOT exec.account::get_item
+    drop drop drop
+    # => [masking_factor, Ca]
+    dup push.1 gt assert
+    push.G swap exp mul
+    # => [Ca']
+end
+
+export.remask_cb
+    # => [Cb]
+    push.MASKING_FACTOR_SLOT exec.account::get_item
+    drop drop drop
+    # => [masking_factor, Cb]
+    push.PUBLIC_KEY_SLOT exec.account::get_item
+    drop drop drop
+    # => [H, r, Cb]
+    swap
+    # Check that 1 < r.
+    dup push.1 gt assert
+    exp
+    mul 
+end
+
+export.remask_shuffle
+    # => [card_index, ca, cb]
+    loc_store.0
+    # => [ca, cb]
+    exec.remask_ca
+    # => [ca', cb]
+    loc_store.1
+    # => [cb]
+    exec.remask_cb
+    # => [cb']
+    loc_load.1
+    # => [ca', cb']
+    swap push.0 dup
+    # => [0, 0, cb', ca']
+
+    # Shuffle
+    loc_load.0
+    # => [pre_shuffle_index, 0, 0, cb', ca']
+    push.MASKING_FACTOR_SLOT exec.account::get_item 
+    drop drop drop
+    # => [mf, pre_shuffle_index, 0, 0, cb', ca']
+    add
+    # => [post_shuffle_index, 0, 0, cb, ca]
+    dup push.TOTAL_CARDS gt
+
+    while.true
+        push.TOTAL_CARDS sub
+        dup push.TOTAL_CARDS gt
+    end
+    # => [post_shuffle_index, 0, 0, cb, ca]
+
+    exec.account::set_item
+    dropw dropw
+end
+
 export.basic_wallet::receive_asset
 export.basic_wallet::send_asset
 export.basic_eoa::auth_tx_rpo_falcon512
