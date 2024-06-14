@@ -1,3 +1,4 @@
+use aze_types::actions::ActionType;
 use miden_objects::{
     accounts::{Account, AccountCode, AccountId, AccountStorage, SlotItem},
     assembly::{ModuleAst, ProgramAst},
@@ -15,13 +16,10 @@ use miden_objects::{
 };
 
 use crate::{
-    client::{AzeAccountTemplate, AzeClient, AzeGameMethods},
-    constants::{
+    broadcast::CheckmoveRequest, client::{AzeAccountTemplate, AzeClient, AzeGameMethods}, constants::{
         BUY_IN_AMOUNT, CURRENT_TURN_INDEX_SLOT, HIGHEST_BET, NO_OF_PLAYERS, PLAYER_INITIAL_BALANCE,
         SMALL_BLIND_AMOUNT, SMALL_BUY_IN_AMOUNT,
-    },
-    notes::{consume_notes, mint_note},
-    storage::GameStorageSlotData,
+    }, gamestate::Check_Action, notes::{consume_notes, mint_note}, storage::GameStorageSlotData
 };
 use ::rand::Rng;
 use figment::{
@@ -280,5 +278,33 @@ pub async fn get_stats(game_id: String, url: String) -> Result<StatResponse, Box
         let error_text = response.text().await?;
         eprintln!("Failed to get stats: {} - {}", status, error_text);
         Err(format!("Failed to get stats: {} - {}", status, error_text).into())
+    }
+}
+
+pub async fn validate_action(action: Check_Action, url: String, player_id: u64) -> Result<bool, Box<dyn Error>>{
+    let client = httpClient::new();
+    let url = url::Url::parse(&url).unwrap();
+    let base_url = format!("http://{}", url.host_str().unwrap());
+    let port = url.port().map(|p| format!(":{}", p)).unwrap_or_default();
+    let stat_url = format!("{}{}{}", base_url, port, "/checkmove");
+
+    let request_body = CheckmoveRequest {
+        player_id,
+        action
+    };
+
+    let response = client
+        .post(&stat_url)
+        .json(&request_body)
+        .send()
+        .await?;
+
+    if response.status().is_success() {
+        Ok(response.json::<Vec<bool>>().await?[0])
+    }else {
+        let status = response.status();
+        let error_text = response.text().await?;
+        eprintln!("Failed to check move: {} - {}", status, error_text);
+        Err(format!("Failed to check move: {} - {}", status, error_text).into())
     }
 }

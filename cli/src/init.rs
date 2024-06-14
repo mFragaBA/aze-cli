@@ -1,6 +1,6 @@
-use crate::accounts::{ create_aze_game_account, consume_game_notes };
+use crate::accounts::{consume_game_notes, create_aze_game_account, send_note};
 use aze_lib::{
-    broadcast::start_wss,
+    broadcast::initialise_server,
     constants::{BUY_IN_AMOUNT, NO_OF_PLAYERS, SMALL_BLIND_AMOUNT},
 };
 use aze_types::accounts::AccountCreationError;
@@ -62,12 +62,16 @@ impl InitCmd {
         match create_aze_game_account(player_ids.clone(), small_blind_amount, buy_in_amount).await {
             Ok(game_account_id) => {
                 println!("Game account created: {:?}", game_account_id);
-                // start wss server in new thread and stores url in ws_config.json for future use i.e sending messages
+                /*
+                    Start ws and http server on exposed port of user in background
+                    Setup local off chain game state 
+                */
                 let config_clone = ws_config.clone();
+                let player_ids_clone = player_ids.clone();
                 tokio::spawn(async move {
-                    match start_wss(game_account_id.to_string(), &config_clone){
+                    match initialise_server(game_account_id.to_string(), &config_clone, buy_in_amount.clone(), small_blind_amount.clone(), player_ids_clone) {
                         Some(ws_url) => {
-                            println!("Game server started at: {}",ws_url);
+                            println!("Game server started at: {}", ws_url);
                             Ok(())
                         }
                         None => {
@@ -75,18 +79,20 @@ impl InitCmd {
                         }
                     }
                 });
-
+         
                 let local_set = LocalSet::new();
-                local_set.run_until(async {
-                    loop {
-                        consume_game_notes(game_account_id).await;
-                        // check slot for phase change
-                        // if phase change, send cards for unmasking
-                        let player_account_id = AccountId::try_from(player_ids[0]).unwrap();
-                        send_note(game_account_id, player_account_id).await;
-                        sleep(Duration::from_secs(5)).await;
-                    }
-                }).await;
+                local_set
+                    .run_until(async {
+                        loop {
+                            consume_game_notes(game_account_id).await;
+                            // check slot for phase change
+                            // if phase change, send cards for unmasking
+                            let player_account_id = AccountId::try_from(player_ids[0]).unwrap();
+                            send_note(game_account_id, player_account_id).await;
+                            sleep(Duration::from_secs(5)).await;
+                        }
+                    })
+                    .await;
                 Ok(())
             }
             Err(e) => Err(format!("Error creating game account: {}", e)),

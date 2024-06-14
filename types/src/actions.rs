@@ -10,6 +10,7 @@ use actix_web::{
 };
 use derive_more::Display;
 use serde::{Deserialize, Serialize};
+use clap::ValueEnum;
 
 #[derive(Debug, Display)]
 pub enum GameActionError {
@@ -20,6 +21,16 @@ pub enum GameActionError {
 #[derive(Deserialize, Serialize)]
 pub struct GameActionResponse {
     pub is_taken: bool,
+}
+
+#[derive(ValueEnum, Debug, PartialEq, Clone, Copy, Eq, Deserialize, Serialize)]
+pub enum ActionType {
+    Raise,
+    SmallBlind,
+    BigBlind,
+    Call,
+    Check,
+    Fold,
 }
 
 impl ResponseError for GameActionError {

@@ -7,3 +7,4 @@ pub mod client;
 pub mod executor;
 pub mod storage;
 pub mod broadcast;
+pub mod gamestate;
