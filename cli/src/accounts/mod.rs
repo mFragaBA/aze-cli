@@ -6,6 +6,7 @@ use aze_lib::client::{
     GenPrivateKeyTransactionData,
     ShuffleCardTransactionData,
     RemaskTransactionData,
+    SetCardsTransactionData,
 };
 use aze_lib::constants::{
     FIRST_PLAYER_INDEX, HIGHEST_BET, NO_OF_PLAYERS, PLAYER_INITIAL_BALANCE, SMALL_BUY_IN_AMOUNT,
@@ -130,10 +131,32 @@ pub async fn create_aze_game_account(
     consume_notes(&mut client, target2_account_id, &[note.try_into().unwrap()]).await;
 
     let (player_account, _) = client.get_account(target2_account_id).unwrap();
-    for slot in 1..53 {
+    for (i, slot) in (1..53).enumerate() {
         let card_digest = player_account.storage().get_item(slot);
-        let card = card_digest.as_elements().to_vec();
-        println!("Card {:?} --> {:?}", slot, card);
+        cards[i] = card_digest.into();
+    }
+
+    // send set cards note to game account
+    let set_cards_data = SetCardsTransactionData::new(   
+        Asset::Fungible(fungible_asset),
+        target2_account_id,
+        game_account_id,
+        &cards,
+    );
+    let transaction_template = AzeTransactionTemplate::SetCards(set_cards_data);
+    let txn_request = client
+        .build_aze_set_cards_tx_request(transaction_template)
+        .unwrap();
+    execute_tx_and_sync(&mut client, txn_request.clone()).await;
+    println!("Note sent!");
+    let note_id = txn_request.expected_output_notes()[0].id();
+    let note = client.get_input_note(note_id).unwrap();
+    consume_notes(&mut client, game_account_id, &[note.try_into().unwrap()]).await;
+
+    let (game_account, _) = client.get_account(game_account_id).unwrap();
+    for slot in (1..53) {
+        let card_digest = game_account.storage().get_item(slot);
+        println!("Slot {}: {:?}", slot, card_digest);
     }
     
     Ok(game_account_id)
