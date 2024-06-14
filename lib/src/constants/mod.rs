@@ -28,3 +28,9 @@ pub const CHECK_COUNTER_SLOT: u8 = 63;
 pub const PLAYER_BALANCE_SLOT: u8 = 68;
 pub const PLAYER_CARD1_SLOT: u8 = 100;
 pub const PLAYER_CARD2_SLOT: u8 = 101;
+
+// PLAYER ACCOUNT
+pub const SECRET_KEY_SLOT: u8 = 53;
+pub const DEFAULT_SKEY: u8 = 8;
+pub const MASKING_FACTOR_SLOT: u8 = 55;
+pub const DEFAULT_MASKING_FACTOR: u8 = 9;

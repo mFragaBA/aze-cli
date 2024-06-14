@@ -4,13 +4,14 @@ use.miden::note
 use.miden::contracts::wallets::basic->wallet
 
 const.G=7
-const.MASKING_FACTOR_SLOT=1
-const.PUBLIC_KEY_SLOT=2
+const.SECRET_KEY_SLOT=53
+const.PUBLIC_KEY_SLOT=54
 
 proc.gen_privatekey
+    push.SECRET_KEY_SLOT exec.account::get_item
+    drop drop drop
     # => [r, ...]
     dup push.2 gt assert
-    dup mem_store.0
     push.G swap exp
     # => [G^r]
 
@@ -18,20 +19,10 @@ proc.gen_privatekey
     # => [PUBLIC_KEY_SLOT, 0, 0, 0, G^r]
     exec.account::set_item
     dropw dropw
-
-    mem_load.0 
-    # => [r]
-    padw drop push.MASKING_FACTOR_SLOT
-    # => [MASKING_FACTOR_SLOT, 0, 0, 0, r]
-    exec.account::set_item
-    dropw dropw
 end
 
 begin   
     dropw
-
-    push.0 exec.note::get_inputs drop
-    mem_loadw drop drop drop
 
     call.gen_privatekey
     # => [...]

@@ -3,7 +3,8 @@ use aze_lib::accounts::create_basic_aze_player_account;
 use aze_lib::client::{
     self, create_aze_client, AzeAccountTemplate, AzeClient, AzeGameMethods, AzeTransactionTemplate,
     SendCardTransactionData,
-    GenPrivateKeyTransactionData
+    GenPrivateKeyTransactionData,
+    ShuffleCardTransactionData
 };
 use aze_lib::constants::{
     FIRST_PLAYER_INDEX, HIGHEST_BET, NO_OF_PLAYERS, PLAYER_INITIAL_BALANCE, SMALL_BUY_IN_AMOUNT,
@@ -45,6 +46,18 @@ pub async fn create_aze_game_account(
         PLAYER_INITIAL_BALANCE,
     );
 
+    let (faucet_account, _) = client
+        .new_account(AccountTemplate::FungibleFaucet {
+            token_symbol: TokenSymbol::new("MATIC").unwrap(),
+            decimals: 8,
+            max_supply: 1_000_000_000,
+            storage_mode: AccountStorageMode::Local,
+        })
+        .unwrap();
+
+    let faucet_account_id = faucet_account.id();
+    let fungible_asset = FungibleAsset::new(faucet_account_id, SMALL_BUY_IN_AMOUNT as u64).unwrap();
+
     let (game_account, _) = client
         .new_game_account(
             AzeAccountTemplate::GameAccount {
@@ -54,6 +67,45 @@ pub async fn create_aze_game_account(
             Some(slot_data),
         )
         .unwrap();
+
+    let game_account_id = game_account.id();
+
+    println!("Account created: {:?}", game_account_id);
+
+    println!("First client consuming note");
+    let note = mint_note(
+        &mut client,
+        game_account_id,
+        faucet_account_id,
+        NoteType::Public,
+    )
+    .await;
+    println!("Minted note");
+    consume_notes(&mut client, game_account_id, &[note]).await;
+
+    // here we will send note for shuffling and encryption
+    let sender_account_id = game_account_id;
+    let target_account_id = create_aze_player_account("player".to_string()).await.unwrap();
+    let shuffle_card_data = ShuffleCardTransactionData::new(   
+        Asset::Fungible(fungible_asset),
+        sender_account_id,
+        target_account_id,
+    );
+
+    let transaction_template = AzeTransactionTemplate::ShuffleCard(shuffle_card_data);
+    let txn_request = client
+        .build_aze_shuffle_card_tx_request(transaction_template)
+        .unwrap();
+    execute_tx_and_sync(&mut client, txn_request.clone()).await;
+    println!("Note sent!");
+    let note_id = txn_request.expected_output_notes()[0].id();
+    let note = client.get_input_note(note_id).unwrap();
+    consume_notes(&mut client, target_account_id, &[note.try_into().unwrap()]).await;
+
+    let (player_account, _) = client.get_account(target_account_id).unwrap();
+    for slot in 1..57 {
+        println!("Slot {}: {:?}", slot, player_account.storage().get_item(slot));
+    }
     
     Ok(game_account_id)
 }
@@ -85,6 +137,41 @@ pub async fn create_aze_player_account(
         Some(seed),
         &AuthSecretKey::RpoFalcon512(key_pair),
     );
+
+    // keygen
+    let (faucet_account, _) = client
+        .new_account(AccountTemplate::FungibleFaucet {
+            token_symbol: TokenSymbol::new("MATIC").unwrap(),
+            decimals: 8,
+            max_supply: 1_000_000_000,
+            storage_mode: AccountStorageMode::Local,
+        })
+        .unwrap();
+    let fungible_asset = FungibleAsset::new(faucet_account.id(), SMALL_BUY_IN_AMOUNT as u64).unwrap();
+
+    let note = mint_note(
+        &mut client,
+        player_account.id(),
+        faucet_account.id(),
+        NoteType::Public,
+    )
+    .await;
+    consume_notes(&mut client, player_account.id(), &[note]).await;
+
+    let gen_key_data = GenPrivateKeyTransactionData::new(  
+        Asset::Fungible(fungible_asset),
+        player_account.id(),
+        player_account.id(),
+    );
+    let transaction_template = AzeTransactionTemplate::GenKey(gen_key_data);
+    let txn_request = client
+        .build_aze_key_gen_tx_request(transaction_template)
+        .unwrap();
+    execute_tx_and_sync(&mut client, txn_request.clone()).await;
+    println!("Note sent!");
+    let note_id = txn_request.expected_output_notes()[0].id();
+    let note = client.get_input_note(note_id).unwrap();
+    consume_notes(&mut client, player_account.id(), &[note.try_into().unwrap()]).await;
 
     Ok(player_account.id())
 }
@@ -191,7 +278,6 @@ pub async fn send_note(sender_account_id: AccountId, target_account_id: AccountI
         })
         .unwrap();
     let fungible_asset = FungibleAsset::new(faucet_account.id(), SMALL_BUY_IN_AMOUNT as u64).unwrap();
-    let masking_factor = 9_u8;
 
     let note = mint_note(
         &mut client,
@@ -207,7 +293,6 @@ pub async fn send_note(sender_account_id: AccountId, target_account_id: AccountI
         Asset::Fungible(fungible_asset),
         sender_account_id,
         target_account_id,
-        masking_factor,
     );
     let transaction_template = AzeTransactionTemplate::GenKey(gen_key_data);
     let txn_request = client

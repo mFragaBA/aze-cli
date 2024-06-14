@@ -20,7 +20,7 @@ use miden_objects::{
         NoteTag, NoteType,
     },
     transaction::{InputNote, TransactionArgs},
-    Felt, NoteError, Word, ZERO,
+    Felt, FieldElement, NoteError, Word, ZERO,
 };
 use miden_tx::TransactionAuthenticator;
 use std::rc::Rc;
@@ -75,22 +75,47 @@ pub fn create_key_gen_note<
     assets: Vec<Asset>,
     note_type: NoteType,
     mut rng: RpoRandomCoin,
-    masking_factor: u8,
 ) -> Result<Note, NoteError> {
     let note_script = include_str!("../../contracts/notes/game/genkey.masm");
     // TODO: hide it under feature flag debug (.with_debug_mode(true))
     let script_ast = ProgramAst::parse(note_script).unwrap();
     let note_script = client.compile_note_script(script_ast, vec![]).unwrap();
 
-    let mut inputs = vec![Felt::from(masking_factor)];
-    println!("Inputs: {:?}", inputs);
-
-    let note_inputs = NoteInputs::new(inputs).unwrap();
+    let note_inputs = NoteInputs::new(vec![]).unwrap();
     let tag = NoteTag::from_account_id(target_account_id, NoteExecutionHint::Local)?;
     let serial_num = rng.draw_word();
     let aux = ZERO;
 
     // TODO: For now hardcoding notes to be public, + Also find out what encrypted notes means
+    let metadata = NoteMetadata::new(sender_account_id, NoteType::Public, tag, aux)?;
+    let vault = NoteAssets::new(assets)?;
+    let recipient = NoteRecipient::new(serial_num, note_script, note_inputs);
+
+    Ok(Note::new(vault, metadata, recipient))
+}
+
+pub fn create_shuffle_card_note<R: FeltRng, N: NodeRpcClient, S: Store, A: TransactionAuthenticator>(
+    client: &mut Client<N, R, S, A>,
+    sender_account_id: AccountId,
+    target_account_id: AccountId,
+    assets: Vec<Asset>,
+    note_type: NoteType,
+    mut rng: RpoRandomCoin,
+) -> Result<Note, NoteError> {
+    let note_script = include_str!("../../contracts/notes/game/shuffle.masm");
+    let script_ast = ProgramAst::parse(note_script).unwrap();
+    let note_script = client.compile_note_script(script_ast, vec![]).unwrap();
+
+    let mut cards = vec![];
+    for card_number in 1..53 {
+            cards = [cards, vec![Felt::from(card_number as u8)]].concat();
+    }
+    
+    let note_inputs = NoteInputs::new(cards).unwrap();
+    let tag = NoteTag::from_account_id(target_account_id, NoteExecutionHint::Local)?;
+    let serial_num = rng.draw_word();
+    let aux = ZERO;
+
     let metadata = NoteMetadata::new(sender_account_id, NoteType::Public, tag, aux)?;
     let vault = NoteAssets::new(assets)?;
     let recipient = NoteRecipient::new(serial_num, note_script, note_inputs);
