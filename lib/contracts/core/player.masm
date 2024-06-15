@@ -167,6 +167,23 @@ export.set_player_data
     dropw dropw 
 end
 
+export.unmask
+    # => [card_index, ca, cb]
+    swap inv
+    # => [ca_inv, card_index, cb]
+    push.SECRET_KEY_SLOT exec.account::get_item
+    drop drop drop
+    # => [sk, ca_inv, card_index, cb]
+    exp
+    # => [ca_inv^sk, card_index, cb]
+    movup.2 mul
+    # => [M, card_index]
+    padw drop movup.4
+    # => [card_index, 0, 0, 0, M]
+    exec.account::set_item
+    dropw dropw
+end
+
 export.basic_wallet::receive_asset
 export.basic_wallet::send_asset
 export.basic_eoa::auth_tx_rpo_falcon512
