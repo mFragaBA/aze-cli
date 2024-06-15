@@ -184,6 +184,31 @@ export.unmask
     dropw dropw
 end
 
+export.inter_unmask
+    # => [card_index, ca', cb']
+    swap push.G inv
+    # => [G_inv, ca', card_index, cb']
+    push.MASKING_FACTOR_SLOT exec.account::get_item
+    drop drop drop
+    # => [r, G_inv, ca', card_index, cb']
+    exp
+    # => [G_inv^r, ca', card_index, cb']
+    mul
+    # => [ca, card_index, cb']
+    movup.2 push.PUBLIC_KEY_SLOT exec.account::get_item
+    drop drop drop
+    # => [H, cb', ca, card_index]
+    inv push.MASKING_FACTOR_SLOT exec.account::get_item
+    drop drop drop
+    # => [r, H_inv, cb', ca, card_index]
+    exp mul
+    # => [cb, ca, card_index]
+    push.0 dup movup.4
+    # => [card_index, 0, 0, cb, ca]
+    exec.account::set_item
+    dropw dropw
+end
+
 export.basic_wallet::receive_asset
 export.basic_wallet::send_asset
 export.basic_eoa::auth_tx_rpo_falcon512
