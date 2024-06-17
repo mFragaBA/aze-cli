@@ -1,15 +1,17 @@
-use crate::accounts::{ create_aze_game_account, consume_game_notes };
-use aze_lib::{
-    broadcast::start_wss,
-    constants::{BUY_IN_AMOUNT, NO_OF_PLAYERS, SMALL_BLIND_AMOUNT},
-};
+use crate::accounts::{ create_aze_game_account, consume_game_notes, send_community_cards };
+use aze_lib::client::{ create_aze_client, AzeClient };
+use aze_lib::constants::{BUY_IN_AMOUNT, NO_OF_PLAYERS, SMALL_BLIND_AMOUNT, CURRENT_PHASE_SLOT};
+use aze_lib::broadcast::start_wss;
 use aze_types::accounts::AccountCreationError;
 use clap::{Parser, ValueEnum};
 use figment::{
     providers::{Format, Toml},
     Figment,
 };
-use miden_objects::accounts::AccountId;
+use miden_objects::{
+    accounts::AccountId,
+    Felt, FieldElement
+};
 use serde::Deserialize;
 use std::path::PathBuf;
 use tokio::task::LocalSet;
@@ -76,14 +78,33 @@ impl InitCmd {
                     }
                 });
 
+                let mut client: AzeClient = create_aze_client();
                 let local_set = LocalSet::new();
                 local_set.run_until(async {
                     loop {
+                        let (game_account, _) = client.get_account(game_account_id).unwrap();
+                        let phase_data = game_account.storage().get_item(CURRENT_PHASE_SLOT).as_elements().to_vec();
+                        let pre_phase = phase_data[0].as_int();
                         consume_game_notes(game_account_id).await;
-                        // check slot for phase change
-                        // if phase change, send cards for unmasking
+                        let (game_account, _) = client.get_account(game_account_id).unwrap();
+                        let phase_data = game_account.storage().get_item(CURRENT_PHASE_SLOT).as_elements().to_vec();
+                        let phase = phase_data[0].as_int();
+
+                        // if phase is not incremented post consumption, continue
+                        if pre_phase + 1 != phase {
+                            sleep(Duration::from_secs(5)).await;
+                            continue;
+                        }
+
+                        // if phase changes, send community cards for unmasking
                         let player_account_id = AccountId::try_from(player_ids[0]).unwrap();
-                        send_note(game_account_id, player_account_id).await;
+                        let mut cards: [[Felt; 4]; 52] = [[Felt::ZERO; 4]; 52];
+                        for (i, slot) in (1..4).enumerate() {
+                            let card_digest = game_account.storage().get_item(slot);
+                            cards[i] = card_digest.into();
+                        }
+                        // send community cards
+                        send_community_cards(game_account_id, player_account_id, cards).await;
                         sleep(Duration::from_secs(5)).await;
                     }
                 }).await;

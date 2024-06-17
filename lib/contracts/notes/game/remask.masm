@@ -11,22 +11,24 @@ const.PLAYER_DATA_SLOT=56
 const.TOTAL_CARDS=52
 const.SUIT_SIZE=13
 
-proc.encrypt_ca
+proc.remask_ca
+    # => [Ca]
     push.MASKING_FACTOR_SLOT exec.account::get_item
     drop drop drop
-    # => [masking_factor]
+    # => [masking_factor, Ca]
     dup push.1 gt assert
-    push.G swap exp
+    push.G swap exp mul
+    # => [Ca']
 end
 
-proc.encrypt_cb
-    # => [card_plaintext M]
+proc.remask_cb
+    # => [Cb]
     push.MASKING_FACTOR_SLOT exec.account::get_item
     drop drop drop
-    # => [masking_factor, M]
+    # => [masking_factor, Cb]
     push.PUBLIC_KEY_SLOT exec.account::get_item
     drop drop drop
-    # => [public_key, masking_factor, M]
+    # => [H, r, Cb]
     swap
     # Check that 1 < r.
     dup push.1 gt assert
@@ -34,25 +36,27 @@ proc.encrypt_cb
     mul 
 end
 
-proc.encrypt_shuffle
-    # => [card_plaintext]
+proc.remask_shuffle
+    # => [card_index, ca, cb]
     loc_store.0
-    exec.encrypt_ca
-    # => [ca]
-    loc_store.1 loc_load.0
-    exec.encrypt_cb
-    # => [cb]
-    loc_load.1
     # => [ca, cb]
+    exec.remask_ca
+    # => [ca', cb]
+    loc_store.1
+    # => [cb]
+    exec.remask_cb
+    # => [cb']
+    loc_load.1
+    # => [ca', cb']
     swap push.0 dup
-    # => [0, 0, cb, ca]
+    # => [0, 0, cb', ca']
 
     # Shuffle
     loc_load.0
-    # => [pre_shuffle_index, 0, 0, cb, ca]
+    # => [pre_shuffle_index, 0, 0, cb', ca']
     push.MASKING_FACTOR_SLOT exec.account::get_item 
     drop drop drop
-    # => [mf, pre_shuffle_index, 0, 0, cb, ca]
+    # => [mf, pre_shuffle_index, 0, 0, cb', ca']
     add
     # => [post_shuffle_index, 0, 0, cb, ca]
     dup push.TOTAL_CARDS gt
@@ -76,30 +80,44 @@ end
 begin 
     dropw
     # store index
-    push.1 exec.note::get_inputs drop
+    push.0 exec.note::get_inputs drop
     # => [des_pointer]
-    mem_store.0
+    loc_store.0
+
+    loc_load.0 push.SUIT_SIZE add
+    mem_load
+    # => [Ca]
+    loc_store.1
+
+    # card_index
+    push.1 loc_store.2
 
     repeat.SUIT_SIZE
 
         repeat.4
-            mem_load.0 mem_load
-            # => [c_1_plaintext]
-            call.encrypt_shuffle
+            loc_load.0 mem_load
+            # => [cb_1]
+            loc_load.1
+            # => [Ca, cb_1]
+            loc_load.2
+            # => [card_index, Ca, cb_1]
+            call.remask_shuffle
             # => [...]
-            mem_load.0 mem_loadw
-            # => [c_4_plaintext, c_3_plaintext, c_2_plaintext, c_1_plaintext]
+            loc_load.0 mem_loadw
+            # => [cb_4, cb_3, cb_2, cb_1]
             movup.3 drop push.0
-            # => [0, c_4_plaintext, c_3_plaintext, c_2_plaintext]
-            mem_load.0 mem_storew dropw
+            # => [0, cb_4, cb_3, cb_2]
+            loc_load.0 mem_storew dropw
             # => [...]
+            # update card_index
+            loc_load.2 push.1 add loc_store.2
         end
 
-        mem_load.0 push.1 add
-        mem_store.0
+        loc_load.0 push.1 add
+        loc_store.0
     end
 
-    mem_load.0 mem_loadw
+    loc_load.0 add.1 mem_loadw
     # => [p4, p3, p2, action_type]
     call.set_player_data
 

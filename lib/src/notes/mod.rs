@@ -1,5 +1,5 @@
 use crate::client::AzeClient;
-use crate::constants::{BUY_IN_AMOUNT, TRANSFER_AMOUNT};
+use crate::constants::{ BUY_IN_AMOUNT, TRANSFER_AMOUNT, FLOP_NO_OF_CARDS };
 use crate::executor::execute_tx_and_sync;
 use miden_client::client::Client;
 use miden_client::{
@@ -101,6 +101,7 @@ pub fn create_shuffle_card_note<R: FeltRng, N: NodeRpcClient, S: Store, A: Trans
     assets: Vec<Asset>,
     note_type: NoteType,
     mut rng: RpoRandomCoin,
+    player_data: [u64; 4],
 ) -> Result<Note, NoteError> {
     let note_script = include_str!("../../contracts/notes/game/shuffle.masm");
     let script_ast = ProgramAst::parse(note_script).unwrap();
@@ -110,8 +111,46 @@ pub fn create_shuffle_card_note<R: FeltRng, N: NodeRpcClient, S: Store, A: Trans
     for card_number in 1..53 {
             cards = [cards, vec![Felt::from(card_number as u8)]].concat();
     }
+    let player_data = player_data.iter().map(|x| Felt::new(*x)).collect::<Vec<Felt>>();
+    let inputs = [cards, player_data].concat();
+    println!("Inputs: {}: {:?}", inputs.len(), inputs);
     
-    let note_inputs = NoteInputs::new(cards).unwrap();
+    let note_inputs = NoteInputs::new(inputs).unwrap();
+    let tag = NoteTag::from_account_id(target_account_id, NoteExecutionHint::Local)?;
+    let serial_num = rng.draw_word();
+    let aux = ZERO;
+
+    let metadata = NoteMetadata::new(sender_account_id, NoteType::Public, tag, aux)?;
+    let vault = NoteAssets::new(assets)?;
+    let recipient = NoteRecipient::new(serial_num, note_script, note_inputs);
+
+    Ok(Note::new(vault, metadata, recipient))
+}
+
+pub fn create_remask_note<R: FeltRng, N: NodeRpcClient, S: Store, A: TransactionAuthenticator>(
+    client: &mut Client<N, R, S, A>,
+    sender_account_id: AccountId,
+    target_account_id: AccountId,
+    assets: Vec<Asset>,
+    note_type: NoteType,
+    mut rng: RpoRandomCoin,
+    cards: [[Felt; 4]; 52],
+    player_data: [u64; 4],
+) -> Result<Note, NoteError> {
+    let note_script = include_str!("../../contracts/notes/game/remask.masm");
+    let script_ast = ProgramAst::parse(note_script).unwrap();
+    let note_script = client.compile_note_script(script_ast, vec![]).unwrap();
+
+    let mut encrypted_cards = vec![];
+    for card in cards.iter() {
+        encrypted_cards = [encrypted_cards, vec![card[1]]].concat();
+    }
+    encrypted_cards = [encrypted_cards, vec![cards[0][0]]].concat();
+    let player_data = player_data.iter().map(|x| Felt::new(*x)).collect::<Vec<Felt>>();
+    let inputs = [encrypted_cards, vec![Felt::ZERO, Felt::ZERO, Felt::ZERO], player_data].concat();
+    println!("Encrypted Cards: {}: {:?}", inputs.len(), inputs);
+
+    let note_inputs = NoteInputs::new(inputs).unwrap();
     let tag = NoteTag::from_account_id(target_account_id, NoteExecutionHint::Local)?;
     let serial_num = rng.draw_word();
     let aux = ZERO;
@@ -256,6 +295,183 @@ pub fn create_play_check_note<
     let note_script = client.compile_note_script(script_ast, vec![]).unwrap();
 
     let note_inputs = NoteInputs::new(vec![]).unwrap();
+    let tag = NoteTag::from_account_id(target_account_id, NoteExecutionHint::Local)?;
+    let serial_num = rng.draw_word();
+    let aux = ZERO;
+
+    let metadata = NoteMetadata::new(sender_account_id, NoteType::Public, tag, aux)?;
+    let vault = NoteAssets::new(assets)?;
+    let recipient = NoteRecipient::new(serial_num, note_script, note_inputs);
+
+    Ok(Note::new(vault, metadata, recipient))
+}
+
+pub fn create_set_cards_note< 
+    R: FeltRng,
+    N: NodeRpcClient,
+    S: Store,
+    A: TransactionAuthenticator,
+>(
+    client: &mut Client<N, R, S, A>,
+    sender_account_id: AccountId,
+    target_account_id: AccountId,
+    assets: Vec<Asset>,
+    note_type: NoteType,
+    mut rng: RpoRandomCoin,
+    cards: [[Felt; 4]; 52],
+) -> Result<Note, NoteError> {
+    let note_script = include_str!("../../contracts/notes/game/set_cards.masm");
+    let script_ast = ProgramAst::parse(note_script).unwrap();
+    let note_script = client.compile_note_script(script_ast, vec![]).unwrap();
+
+    let mut inputs = vec![];
+    for card in cards.iter() {
+        inputs = [inputs, vec![card[1]]].concat();
+    }
+    inputs = [inputs, vec![cards[0][0]]].concat();
+    println!("Inputs: {}: {:?}", inputs.len(), inputs);
+
+    let note_inputs = NoteInputs::new(inputs).unwrap();
+    let tag = NoteTag::from_account_id(target_account_id, NoteExecutionHint::Local)?;
+    let serial_num = rng.draw_word();
+    let aux = ZERO;
+
+    let metadata = NoteMetadata::new(sender_account_id, NoteType::Public, tag, aux)?;
+    let vault = NoteAssets::new(assets)?;
+    let recipient = NoteRecipient::new(serial_num, note_script, note_inputs);
+
+    Ok(Note::new(vault, metadata, recipient))
+}
+
+pub fn create_set_community_cards_note< 
+    R: FeltRng,
+    N: NodeRpcClient,
+    S: Store,
+    A: TransactionAuthenticator,
+>(
+    client: &mut Client<N, R, S, A>,
+    sender_account_id: AccountId,
+    target_account_id: AccountId,
+    assets: Vec<Asset>,
+    note_type: NoteType,
+    mut rng: RpoRandomCoin,
+    cards: [[Felt; 4]; 52],
+) -> Result<Note, NoteError> {
+    let note_script = include_str!("../../contracts/notes/game/set_community_cards.masm");
+    let script_ast = ProgramAst::parse(note_script).unwrap();
+    let note_script = client.compile_note_script(script_ast, vec![]).unwrap();
+
+    let mut inputs = vec![];
+    for card in cards.iter().take(FLOP_NO_OF_CARDS as usize) {
+        inputs = [inputs, vec![card[0], card[1], Felt::ZERO, Felt::ZERO]].concat();
+    }
+    println!("Inputs: {}: {:?}", inputs.len(), inputs);
+
+    let note_inputs = NoteInputs::new(inputs).unwrap();
+    let tag = NoteTag::from_account_id(target_account_id, NoteExecutionHint::Local)?;
+    let serial_num = rng.draw_word();
+    let aux = ZERO;
+
+    let metadata = NoteMetadata::new(sender_account_id, NoteType::Public, tag, aux)?;
+    let vault = NoteAssets::new(assets)?;
+    let recipient = NoteRecipient::new(serial_num, note_script, note_inputs);
+
+    Ok(Note::new(vault, metadata, recipient))
+}
+
+pub fn create_send_unmasked_cards_note<R: FeltRng, N: NodeRpcClient, S: Store, A: TransactionAuthenticator>(
+    client: &mut Client<N, R, S, A>,
+    sender_account_id: AccountId,
+    target_account_id: AccountId,
+    assets: Vec<Asset>,
+    note_type: NoteType,
+    mut rng: RpoRandomCoin,
+    cards: [[Felt; 4]; 3],
+    player_data: [Felt; 4],
+) -> Result<Note, NoteError> {
+    let note_script = include_str!("../../contracts/notes/game/send_unmasked_cards.masm");
+    let script_ast = ProgramAst::parse(note_script).unwrap();
+    let note_script = client.compile_note_script(script_ast, vec![]).unwrap();
+
+    let mut unmasked_cards = vec![];
+    for card in cards.iter() {
+        unmasked_cards = [unmasked_cards, vec![card[0], card[1], Felt::ZERO, Felt::ZERO]].concat();
+    }
+    let inputs = [unmasked_cards, player_data.to_vec()].concat();
+    println!("Inputs: {}: {:?}", inputs.len(), inputs);
+
+    let note_inputs = NoteInputs::new(inputs).unwrap();
+    let tag = NoteTag::from_account_id(target_account_id, NoteExecutionHint::Local)?;
+    let serial_num = rng.draw_word();
+    let aux = ZERO;
+
+    let metadata = NoteMetadata::new(sender_account_id, NoteType::Public, tag, aux)?;
+    let vault = NoteAssets::new(assets)?;
+    let recipient = NoteRecipient::new(serial_num, note_script, note_inputs);
+
+    Ok(Note::new(vault, metadata, recipient))
+}
+
+pub fn create_unmask_note<R: FeltRng, N: NodeRpcClient, S: Store, A: TransactionAuthenticator>(
+    client: &mut Client<N, R, S, A>,
+    sender_account_id: AccountId,
+    target_account_id: AccountId,
+    assets: Vec<Asset>,
+    note_type: NoteType,
+    mut rng: RpoRandomCoin,
+    cards: [[Felt; 4]; 3],
+    card_slot: u8,
+) -> Result<Note, NoteError> {
+    let note_script = include_str!("../../contracts/notes/game/unmask.masm");
+    let script_ast = ProgramAst::parse(note_script).unwrap();
+    let note_script = client.compile_note_script(script_ast, vec![]).unwrap();
+
+    let mut encrypted_cards = vec![];
+    for card in cards.iter() {
+        encrypted_cards = [encrypted_cards, vec![card[0], card[1], Felt::ZERO, Felt::ZERO]].concat();
+    }
+    let inputs = [encrypted_cards, vec![Felt::from(card_slot)]].concat();
+    println!("Inputs: {}: {:?}", inputs.len(), inputs);
+
+    let note_inputs = NoteInputs::new(inputs).unwrap();
+    let tag = NoteTag::from_account_id(target_account_id, NoteExecutionHint::Local)?;
+    let serial_num = rng.draw_word();
+    let aux = ZERO;
+
+    let metadata = NoteMetadata::new(sender_account_id, NoteType::Public, tag, aux)?;
+    let vault = NoteAssets::new(assets)?;
+    let recipient = NoteRecipient::new(serial_num, note_script, note_inputs);
+
+    Ok(Note::new(vault, metadata, recipient))
+}
+
+pub fn create_inter_unmask_note<
+    R: FeltRng,
+    N: NodeRpcClient,
+    S: Store,
+    A: TransactionAuthenticator,
+>(
+    client: &mut Client<N, R, S, A>,
+    sender_account_id: AccountId,
+    target_account_id: AccountId,
+    assets: Vec<Asset>,
+    note_type: NoteType,
+    mut rng: RpoRandomCoin,
+    cards: [[Felt; 4]; 3],
+    requester_id: AccountId,
+) -> Result<Note, NoteError> {
+    let note_script = include_str!("../../contracts/notes/game/inter_unmask.masm");
+    let script_ast = ProgramAst::parse(note_script).unwrap();
+    let note_script = client.compile_note_script(script_ast, vec![]).unwrap();
+
+    let mut encrypted_cards = vec![];
+    for card in cards.iter() {
+        encrypted_cards = [encrypted_cards, vec![card[0], card[1], Felt::ZERO, Felt::ZERO]].concat();
+    }
+    encrypted_cards = [encrypted_cards, vec![Felt::from(requester_id)]].concat();
+    println!("Encrypted Cards: {}: {:?}", encrypted_cards.len(), encrypted_cards);
+
+    let note_inputs = NoteInputs::new(encrypted_cards).unwrap();
     let tag = NoteTag::from_account_id(target_account_id, NoteExecutionHint::Local)?;
     let serial_num = rng.draw_word();
     let aux = ZERO;
