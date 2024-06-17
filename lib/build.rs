@@ -28,7 +28,6 @@ const ASM_KERNELS_DIR: &str = "kernels/transaction";
 /// - Compiles contents of asm/scripts directory into individual .masb files.
 #[cfg(not(feature = "docs-rs"))]
 fn main() -> io::Result<()> {
-
     println!("Building Masm");
     // re-build when the MASM code changes
     println!("cargo:rerun-if-changed=asm");
@@ -50,7 +49,10 @@ fn main() -> io::Result<()> {
     compile_miden_lib(&source_dir, &target_dir)?;
 
     // compile kernel and note scripts
-    compile_kernels(&source_dir.join(ASM_KERNELS_DIR), &target_dir.join("kernels"))?;
+    compile_kernels(
+        &source_dir.join(ASM_KERNELS_DIR),
+        &target_dir.join("kernels"),
+    )?;
     compile_note_scripts(
         &source_dir.join(ASM_NOTE_SCRIPTS_DIR),
         &target_dir.join(ASM_NOTE_SCRIPTS_DIR),
@@ -88,7 +90,7 @@ fn compile_miden_lib(source_dir: &Path, target_dir: &Path) -> io::Result<()> {
 
             fs::remove_file(&constants).unwrap();
             fs::rename(&patched, &constants).unwrap();
-        },
+        }
         _ => (),
     }
 
@@ -126,7 +128,9 @@ fn compile_note_scripts(source_dir: &Path, target_dir: &Path) -> io::Result<()> 
     for masm_file_path in get_masm_files(source_dir)? {
         // read the MASM file, parse it, and serialize the parsed AST to bytes
         let ast = ProgramAst::parse(&fs::read_to_string(masm_file_path.clone())?)?;
-        let bytes = ast.to_bytes(AstSerdeOptions { serialize_imports: true });
+        let bytes = ast.to_bytes(AstSerdeOptions {
+            serialize_imports: true,
+        });
 
         // TODO: get rid of unwraps
         let masb_file_name = masm_file_path.file_name().unwrap().to_str().unwrap();
@@ -145,7 +149,9 @@ fn compile_note_scripts(source_dir: &Path, target_dir: &Path) -> io::Result<()> 
 fn compile_kernels(source_dir: &Path, target_dir: &Path) -> io::Result<()> {
     // read the MASM file, parse it, and serialize the parsed AST to bytes
     let ast = ProgramAst::parse(&fs::read_to_string(source_dir.join("main.masm").clone())?)?;
-    let bytes = ast.to_bytes(AstSerdeOptions { serialize_imports: true });
+    let bytes = ast.to_bytes(AstSerdeOptions {
+        serialize_imports: true,
+    });
 
     // create the output file path
     let masb_file_name = "transaction";
@@ -218,11 +224,11 @@ fn get_masm_files<P: AsRef<Path>>(dir_path: P) -> io::Result<Vec<PathBuf>> {
                             if is_masm_file(&file_path)? {
                                 files.push(file_path);
                             }
-                        },
+                        }
                         Err(e) => println!("Error reading directory entry: {}", e),
                     }
                 }
-            },
+            }
             Err(e) => println!("Error reading directory: {}", e),
         }
     } else {

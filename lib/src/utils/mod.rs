@@ -35,7 +35,7 @@ use miden_client::{
         Client,
     },
     config::ClientConfig,
-    errors::{ClientError, NoteIdPrefixFetchError},
+    errors::{ClientError, IdPrefixFetchError},
     store::{sqlite_store::SqliteStore, InputNoteRecord, NoteFilter as ClientNoteFilter, Store},
 };
 use std::path::Path;

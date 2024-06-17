@@ -1,0 +1,64 @@
+use.std::math::ecgfp5::group
+use.miden::account
+use.miden::note
+use.miden::contracts::wallets::basic->wallet
+
+const.SUIT_SIZE=13
+
+proc.set_cards
+    # => [card_index, Cb, Ca]
+    push.0 dup movup.2
+    # => [card_index, 0, 0, Cb, Ca]
+    exec.account::set_item
+    dropw dropw
+end
+
+begin 
+    dropw
+    # store index
+    push.0 exec.note::get_inputs drop
+    # => [des_pointer]
+    loc_store.0
+
+    loc_load.0 push.SUIT_SIZE add
+    mem_load
+    # => [Ca]
+    loc_store.1
+
+    # card_index
+    push.1 loc_store.2
+
+    repeat.SUIT_SIZE
+
+        repeat.4
+            loc_load.0 mem_load
+            # => [cb_1]
+            loc_load.1 swap
+            # => [cb_1, Ca]
+            loc_load.2
+            # => [card_index, cb_1, Ca]
+            call.set_cards
+            # => [...]
+            loc_load.0 mem_loadw
+            # => [cb_4, cb_3, cb_2, cb_1]
+            movup.3 drop push.0
+            # => [0, cb_4, cb_3, cb_2]
+            loc_load.0 mem_storew dropw
+            # => [...]
+            # update card_index
+            loc_load.2 push.1 add loc_store.2
+        end
+
+        loc_load.0 push.1 add
+        loc_store.0
+    end
+
+    exec.note::get_assets drop mem_loadw
+    # => [ASSET, ...]
+
+    # load the asset and add it to the account
+    call.wallet::receive_asset
+    # => [...]
+
+    dropw
+end

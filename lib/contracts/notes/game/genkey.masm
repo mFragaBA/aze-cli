@@ -1,0 +1,39 @@
+use.std::math::ecgfp5::group
+use.miden::account
+use.miden::note
+use.miden::contracts::wallets::basic->wallet
+
+const.G=7
+const.SECRET_KEY_SLOT=53
+const.PUBLIC_KEY_SLOT=54
+
+proc.gen_privatekey
+    push.SECRET_KEY_SLOT exec.account::get_item
+    drop drop drop
+    # => [r, ...]
+    dup push.2 gt assert
+    push.G swap exp
+    # => [G^r]
+
+    padw drop push.PUBLIC_KEY_SLOT
+    # => [PUBLIC_KEY_SLOT, 0, 0, 0, G^r]
+    exec.account::set_item
+    dropw dropw
+end
+
+begin   
+    dropw
+
+    call.gen_privatekey
+    # => [...]
+    dropw
+
+    exec.note::get_assets drop mem_loadw
+    # => [ASSET, ...]
+
+    # load the asset and add it to the account
+    call.wallet::receive_asset
+    # => [...]
+
+    dropw
+end

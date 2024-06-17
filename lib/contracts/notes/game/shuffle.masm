@@ -1,0 +1,114 @@
+use.std::math::ecgfp5::group
+use.miden::account
+use.miden::note
+use.miden::contracts::wallets::basic->wallet
+
+const.G=7
+const.SECRET_KEY_SLOT=53
+const.PUBLIC_KEY_SLOT=54
+const.MASKING_FACTOR_SLOT=55
+const.PLAYER_DATA_SLOT=56
+const.TOTAL_CARDS=52
+const.SUIT_SIZE=13
+
+proc.encrypt_ca
+    push.MASKING_FACTOR_SLOT exec.account::get_item
+    drop drop drop
+    # => [masking_factor]
+    dup push.1 gt assert
+    push.G swap exp
+end
+
+proc.encrypt_cb
+    # => [card_plaintext M]
+    push.MASKING_FACTOR_SLOT exec.account::get_item
+    drop drop drop
+    # => [masking_factor, M]
+    push.PUBLIC_KEY_SLOT exec.account::get_item
+    drop drop drop
+    # => [public_key, masking_factor, M]
+    swap
+    # Check that 1 < r.
+    dup push.1 gt assert
+    exp
+    mul 
+end
+
+proc.encrypt_shuffle
+    # => [card_plaintext]
+    loc_store.0
+    exec.encrypt_ca
+    # => [ca]
+    loc_store.1 loc_load.0
+    exec.encrypt_cb
+    # => [cb]
+    loc_load.1
+    # => [ca, cb]
+    swap push.0 dup
+    # => [0, 0, cb, ca]
+
+    # Shuffle
+    loc_load.0
+    # => [pre_shuffle_index, 0, 0, cb, ca]
+    push.MASKING_FACTOR_SLOT exec.account::get_item 
+    drop drop drop
+    # => [mf, pre_shuffle_index, 0, 0, cb, ca]
+    add
+    # => [post_shuffle_index, 0, 0, cb, ca]
+    dup push.TOTAL_CARDS gt
+
+    while.true
+        push.TOTAL_CARDS sub
+        dup push.TOTAL_CARDS gt
+    end
+    # => [post_shuffle_index, 0, 0, cb, ca]
+
+    exec.account::set_item
+    dropw dropw
+end
+
+proc.set_player_data
+    # => [p4, p3, p2, action_type]
+    push.PLAYER_DATA_SLOT exec.account::set_item
+    dropw dropw 
+end
+
+begin 
+    dropw
+    # store index
+    push.1 exec.note::get_inputs drop
+    # => [des_pointer]
+    mem_store.0
+
+    repeat.SUIT_SIZE
+
+        repeat.4
+            mem_load.0 mem_load
+            # => [c_1_plaintext]
+            call.encrypt_shuffle
+            # => [...]
+            mem_load.0 mem_loadw
+            # => [c_4_plaintext, c_3_plaintext, c_2_plaintext, c_1_plaintext]
+            movup.3 drop push.0
+            # => [0, c_4_plaintext, c_3_plaintext, c_2_plaintext]
+            mem_load.0 mem_storew dropw
+            # => [...]
+        end
+
+        mem_load.0 push.1 add
+        mem_store.0
+    end
+
+    mem_load.0 mem_loadw
+    # => [p4, p3, p2, action_type]
+    call.set_player_data
+
+    exec.note::get_assets drop mem_loadw
+    # => [ASSET, ...]
+
+    # load the asset and add it to the account
+    call.wallet::receive_asset
+    # => [...]
+
+    dropw
+end
