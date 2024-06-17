@@ -17,14 +17,29 @@ use miden_objects::{
     notes::NoteType,
 };
 
+use aze_lib::utils::{broadcast_message, Ws_config};
+
 pub async fn raise(
     player_id: u64,
     game_id: u64,
     amount: Option<u8>,
+    ws_config_path: &std::path::PathBuf,
 ) -> Result<GameActionResponse, String> {
     let mut client: AzeClient = create_aze_client();
     let player_account_id = AccountId::try_from(player_id).unwrap();
     let game_account_id = AccountId::try_from(game_id).unwrap();
+    let ws_url = Ws_config::load(ws_config_path).url.unwrap();
+
+    let _ = broadcast_message(
+        game_account_id.to_string(),
+        ws_url.clone(),
+        format!(
+            "Player: {} plays raise by amount: {}",
+            player_id,
+            amount.unwrap()
+        ),
+    )
+    .await;
 
     let (faucet_account, _) = client
         .new_account(AccountTemplate::FungibleFaucet {
@@ -58,10 +73,32 @@ pub async fn raise(
     Ok(GameActionResponse { is_taken: true })
 }
 
-pub async fn call(player_id: u64, game_id: u64) -> Result<GameActionResponse, String> {
+pub async fn call(
+    player_id: u64,
+    game_id: u64,
+    ws_config_path: &std::path::PathBuf,
+) -> Result<GameActionResponse, String> {
     let mut client: AzeClient = create_aze_client();
     let player_account_id = AccountId::try_from(player_id).unwrap();
     let game_account_id = AccountId::try_from(game_id).unwrap();
+
+    let mut ws_url: String = String::new();
+
+    match Ws_config::load(ws_config_path).url {
+        Some(url) => {
+            ws_url = url;
+        }
+
+        None => {
+            eprintln!("Ws_config DNE, use init or connect command before action");
+        }
+    }
+    let _ = broadcast_message(
+        game_account_id.to_string(),
+        ws_url.clone(),
+        format!("Player: {} plays call ", player_id),
+    )
+    .await;
 
     let (faucet_account, _) = client
         .new_account(AccountTemplate::FungibleFaucet {
@@ -91,10 +128,32 @@ pub async fn call(player_id: u64, game_id: u64) -> Result<GameActionResponse, St
     Ok(GameActionResponse { is_taken: true })
 }
 
-pub async fn check(player_id: u64, game_id: u64) -> Result<GameActionResponse, String> {
+pub async fn check(
+    player_id: u64,
+    game_id: u64,
+    ws_config_path: &std::path::PathBuf,
+) -> Result<GameActionResponse, String> {
     let mut client: AzeClient = create_aze_client();
     let player_account_id = AccountId::try_from(player_id).unwrap();
     let game_account_id = AccountId::try_from(game_id).unwrap();
+
+    let mut ws_url: String = String::new();
+
+    match Ws_config::load(ws_config_path).url {
+        Some(url) => {
+            ws_url = url;
+        }
+
+        None => {
+            eprintln!("Ws_config DNE, use init or connect command before action");
+        }
+    }
+    let _ = broadcast_message(
+        game_account_id.to_string(),
+        ws_url.clone(),
+        format!("Player: {} plays check", player_id),
+    )
+    .await;
 
     let (faucet_account, _) = client
         .new_account(AccountTemplate::FungibleFaucet {
@@ -124,10 +183,33 @@ pub async fn check(player_id: u64, game_id: u64) -> Result<GameActionResponse, S
     Ok(GameActionResponse { is_taken: true })
 }
 
-pub async fn fold(player_id: u64, game_id: u64) -> Result<GameActionResponse, String> {
+pub async fn fold(
+    player_id: u64,
+    game_id: u64,
+    ws_config_path: &std::path::PathBuf,
+) -> Result<GameActionResponse, String> {
     let mut client: AzeClient = create_aze_client();
     let player_account_id = AccountId::try_from(player_id).unwrap();
     let game_account_id = AccountId::try_from(game_id).unwrap();
+
+    let mut ws_url: String = String::new();
+
+    match Ws_config::load(ws_config_path).url {
+        Some(url) => {
+            ws_url = url;
+        }
+
+        None => {
+            eprintln!("Ws_config DNE, use init or connect command before action");
+        }
+    }
+
+    let _ = broadcast_message(
+        game_account_id.to_string(),
+        ws_url.clone(),
+        format!("Player: {} plays fold", player_id),
+    )
+    .await;
 
     let (faucet_account, _) = client
         .new_account(AccountTemplate::FungibleFaucet {
@@ -157,10 +239,32 @@ pub async fn fold(player_id: u64, game_id: u64) -> Result<GameActionResponse, St
     Ok(GameActionResponse { is_taken: true })
 }
 
-pub async fn bet(player_id: u64, game_id: u64, amount: u8) -> Result<GameActionResponse, String> {
+pub async fn bet(
+    player_id: u64,
+    game_id: u64,
+    amount: u8,
+    ws_config_path: &std::path::PathBuf,
+) -> Result<GameActionResponse, String> {
     let mut client: AzeClient = create_aze_client();
     let player_account_id = AccountId::try_from(player_id).unwrap();
     let game_account_id = AccountId::try_from(game_id).unwrap();
+    let mut ws_url: String = String::new();
+
+    match Ws_config::load(ws_config_path).url {
+        Some(url) => {
+            ws_url = url;
+        }
+
+        None => {
+            eprintln!("Ws_config DNE, use init or connect command before action");
+        }
+    }
+    let _ = broadcast_message(
+        game_account_id.to_string(),
+        ws_url.clone(),
+        format!("Player: {} bet amount: {}", player_id, amount),
+    )
+    .await;
 
     let (faucet_account, _) = client
         .new_account(AccountTemplate::FungibleFaucet {
@@ -191,14 +295,22 @@ pub async fn bet(player_id: u64, game_id: u64, amount: u8) -> Result<GameActionR
     Ok(GameActionResponse { is_taken: true })
 }
 
-pub async fn small_blind(player_id: u64, game_id: u64) -> Result<GameActionResponse, String> {
+pub async fn small_blind(
+    player_id: u64,
+    game_id: u64,
+    ws_config_path: &std::path::PathBuf,
+) -> Result<GameActionResponse, String> {
     // request small blind amount from game account
     let small_blind = 5; // for now
-    bet(player_id, game_id, small_blind).await
+    bet(player_id, game_id, small_blind, ws_config_path).await
 }
 
-pub async fn big_blind(player_id: u64, game_id: u64) -> Result<GameActionResponse, String> {
+pub async fn big_blind(
+    player_id: u64,
+    game_id: u64,
+    ws_config_path: &std::path::PathBuf,
+) -> Result<GameActionResponse, String> {
     // request big blind amount from game account
     let big_blind = 10; // for now
-    bet(player_id, game_id, big_blind).await
+    bet(player_id, game_id, big_blind, ws_config_path).await
 }
