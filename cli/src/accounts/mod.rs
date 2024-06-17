@@ -13,7 +13,7 @@ use aze_lib::client::{
 };
 use aze_lib::constants::{
     FIRST_PLAYER_INDEX, HIGHEST_BET, NO_OF_PLAYERS, PLAYER_INITIAL_BALANCE, SMALL_BUY_IN_AMOUNT,
-    PLAYER_DATA_SLOT, DEFAULT_ACTION_TYPE, PLAYER_CARD1_SLOT
+    PLAYER_DATA_SLOT, DEFAULT_ACTION_TYPE, PLAYER_CARD1_SLOT, TEMP_CARD_SLOT,
 };
 use aze_lib::executor::execute_tx_and_sync;
 use aze_lib::notes::{consume_notes, mint_note};
@@ -388,7 +388,7 @@ pub async fn self_unmask(account_id: AccountId, card_slot: u8) -> Result<(), Str
     let (player_account, _) = client.get_account(account_id).unwrap();
 
     let mut cards: [[Felt; 4]; 3] = [[Felt::ZERO; 4]; 3];
-    for (i, slot) in (103..106).enumerate() {
+    for (i, slot) in (TEMP_CARD_SLOT..TEMP_CARD_SLOT + 3).enumerate() {
         let card_digest = player_account.storage().get_item(slot);
         cards[i] = card_digest.into();
     }
@@ -423,15 +423,9 @@ pub async fn self_unmask(account_id: AccountId, card_slot: u8) -> Result<(), Str
     Ok(())
 }
 
-pub async fn send_community_cards(account_id: AccountId, game_account_id: AccountId) {
+pub async fn send_community_cards(account_id: AccountId, receiver_account_id: AccountId, cards: [[Felt; 4]; 52]) {
     let mut client: AzeClient = create_aze_client();
     let (player_account, _) = client.get_account(account_id).unwrap();
-
-    let mut cards: [[Felt; 4]; 52] = [[Felt::ZERO; 4]; 52];
-    for (i, slot) in (103..106).enumerate() {
-        let card_digest = player_account.storage().get_item(slot);
-        cards[i] = card_digest.into();
-    }
 
     // send set cards note to game account
     let (faucet_account, _) = client
@@ -446,7 +440,7 @@ pub async fn send_community_cards(account_id: AccountId, game_account_id: Accoun
     let set_cards_data = SetCardsTransactionData::new(   
         Asset::Fungible(fungible_asset),
         account_id,
-        game_account_id,
+        receiver_account_id,
         &cards,
     );
     let transaction_template = AzeTransactionTemplate::SetCards(set_cards_data);
@@ -462,7 +456,7 @@ pub async fn send_unmasked_cards(account_id: AccountId, requester_id: AccountId)
     let (player_account, _) = client.get_account(account_id).unwrap();
 
     let mut cards: [[Felt; 4]; 3] = [[Felt::ZERO; 4]; 3];
-    for (i, slot) in (103..106).enumerate() {
+    for (i, slot) in (TEMP_CARD_SLOT..TEMP_CARD_SLOT + 3).enumerate() {
         let card_digest = player_account.storage().get_item(slot);
         cards[i] = card_digest.into();
     }

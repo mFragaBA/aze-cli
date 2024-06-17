@@ -216,6 +216,14 @@ export.inter_unmask
     dropw dropw
 end
 
+proc.set_cards
+    # => [card_index, Cb, Ca]
+    push.0 dup movup.2
+    # => [card_index, 0, 0, Cb, Ca]
+    exec.account::set_item
+    dropw dropw
+end
+
 export.basic_wallet::receive_asset
 export.basic_wallet::send_asset
 export.basic_eoa::auth_tx_rpo_falcon512

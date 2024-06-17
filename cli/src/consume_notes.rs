@@ -45,6 +45,7 @@ impl ConsumeNotesCmd {
                     .to_vec();
                 let action_type_pre = player_data[0].as_int();
                 let requester_id = requester_info[0].as_int();
+                let community_card = player_account.storage().get_item(TEMP_CARD_SLOT).as_elements().to_vec();
 
                 consume_game_notes(account_id).await;
 
@@ -61,9 +62,21 @@ impl ConsumeNotesCmd {
                     .to_vec();
                 let action_type = player_data[0].as_int();
                 let requester_id_post = requester_info[0].as_int();
+                let community_card_post = player_account.storage().get_item(TEMP_CARD_SLOT).as_elements().to_vec();
 
                 // if requester_id has changed post consumption
                 if requester_id != requester_id_post {
+
+                    if community_card != community_card_post {
+                        let mut cards: [[Felt; 4]; 3] = [[Felt::ZERO; 4]; 3];
+                        for (i, slot) in (TEMP_CARD_SLOT..TEMP_CARD_SLOT + 3).enumerate() {
+                            let card_digest = player_account.storage().get_item(slot);
+                            cards[i] = card_digest.into();
+                        }
+                        p2p_unmask_flow(account_id, cards).await;
+                        return
+                    }
+
                     let requester_account_id = AccountId::try_from(requester_id_post).unwrap();
                     send_unmasked_cards(account_id, requester_account_id).await;
                 }
@@ -105,7 +118,12 @@ impl ConsumeNotesCmd {
                     self_unmask(account_id, TEMP_CARD_SLOT).await;
                     // send cards to game account
                     let game_account_id = AccountId::try_from(self.game_id).unwrap();
-                    send_community_cards(account_id, game_account_id).await;
+                    let mut cards: [[Felt; 4]; 52] = [[Felt::ZERO; 4]; 52];
+                    for (i, slot) in (TEMP_CARD_SLOT..TEMP_CARD_SLOT + 3).enumerate() {
+                        let card_digest = player_account.storage().get_item(slot);
+                        cards[i] = card_digest.into();
+                    }
+                    send_community_cards(account_id, game_account_id, cards).await;
                 }
 
                 sleep(Duration::from_secs(5)).await;
