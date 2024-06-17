@@ -41,6 +41,10 @@ use miden_client::{
 use std::path::Path;
 use std::{env::temp_dir, fs, time::Duration};
 
+use reqwest::Client as httpClient;
+use serde::{Deserialize, Serialize};
+use std::error::Error;
+
 // use uuid::Uuid;
 
 pub fn get_new_key_pair_with_advice_map() -> (Word, Vec<Felt>) {
@@ -178,4 +182,103 @@ pub async fn setup_accounts(
         target_account_id,
         slot_data,
     );
+}
+
+#[derive(Serialize)]
+pub struct PublishRequest {
+    game_id: String,
+    event: String,
+}
+#[derive(Serialize)]
+pub struct StatRequest {
+    game_id: String,
+}
+#[derive(Serialize, Deserialize)]
+pub struct StatResponse {
+    pub community_cards: Vec<u64>,
+    pub player_balances: Vec<u64>,
+    pub current_player: u64,
+    pub pot_value: u64,
+}
+
+// Config for saving broadcast url
+#[derive(Default, Serialize, Deserialize)]
+pub struct Ws_config {
+    pub url: Option<String>,
+}
+
+impl Ws_config {
+    pub fn new() -> Self {
+        Ws_config { url: None }
+    }
+
+    pub fn load(config_path: &std::path::PathBuf) -> Self {
+        if let Ok(config_data) = fs::read_to_string(config_path) {
+            serde_json::from_str(&config_data).unwrap_or_default()
+        } else {
+            Ws_config::new()
+        }
+    }
+
+    pub fn save(&self, config_path: &std::path::PathBuf) {
+        if let Ok(config_data) = serde_json::to_string_pretty(self) {
+            fs::write(config_path, config_data).expect("Unable to write config file");
+        }
+    }
+}
+
+pub async fn broadcast_message(game_id: String, url: String, message: String) -> Result<(), Box<dyn Error>> {
+    let client = httpClient::new();
+    let url = url::Url::parse(&url).unwrap();
+    let base_url = format!("http://{}", url.host_str().unwrap());
+    let port = url.port().map(|p| format!(":{}", p)).unwrap_or_default();
+    let publish_url = format!("{}{}{}", base_url, port, "/publish");
+    
+    let request_body = PublishRequest {
+        game_id,
+        event: message,
+    };
+
+    let response = client
+        .post(&publish_url)
+        .json(&request_body)
+        .send()
+        .await?;
+
+    if response.status().is_success() {
+        println!("Message successfully published");
+        Ok(())
+    } else {
+        let status = response.status();
+        let error_text = response.text().await?;
+        eprintln!("Failed to publish message: {} - {}", status, error_text);
+        Err(format!("Failed to publish message: {} - {}", status, error_text).into())
+    }
+}
+
+pub async fn get_stats(game_id: String, url: String) -> Result<StatResponse, Box<dyn Error>>{
+    let client = httpClient::new();
+    let url = url::Url::parse(&url).unwrap();
+    let base_url = format!("http://{}", url.host_str().unwrap());
+    let port = url.port().map(|p| format!(":{}", p)).unwrap_or_default();
+    let stat_url = format!("{}{}{}", base_url, port, "/stats");
+
+    let request_body = StatRequest {
+        game_id
+    };
+
+    let response = client
+        .post(&stat_url)
+        .json(&request_body)
+        .send()
+        .await?;
+
+    if response.status().is_success() {
+        Ok(response.json().await? )
+    }else {
+        let status = response.status();
+        let error_text = response.text().await?;
+        eprintln!("Failed to get stats: {} - {}", status, error_text);
+        Err(format!("Failed to get stats: {} - {}", status, error_text).into())
+    }
 }
