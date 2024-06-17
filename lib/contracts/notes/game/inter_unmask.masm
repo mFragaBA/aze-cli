@@ -8,7 +8,9 @@ const.SECRET_KEY_SLOT=53
 const.PUBLIC_KEY_SLOT=54
 const.MASKING_FACTOR_SLOT=55
 const.PLAYER_DATA_SLOT=56
-const.SUIT_SIZE=13
+const.NO_OF_CARDS=3
+const.REQUESTER_INFO_SLOT=102
+const.TEMP_CARD_SLOT=103
 
 proc.inter_unmask
     # => [card_index, ca', cb']
@@ -35,6 +37,12 @@ proc.inter_unmask
     dropw dropw
 end
 
+proc.set_requester_data
+    # => [0, 0, 0, requester_id]
+    push.REQUESTER_INFO_SLOT exec.account::set_item
+    dropw dropw 
+end
+
 begin 
     dropw
     # store index
@@ -42,38 +50,30 @@ begin
     # => [des_pointer]
     loc_store.0
 
-    loc_load.0 push.SUIT_SIZE add
-    mem_load
-    # => [Ca]
-    loc_store.1
-
     # card_index
-    push.1 loc_store.2
+    push.TEMP_CARD_SLOT loc_store.2
 
-    repeat.SUIT_SIZE
+    repeat.NO_OF_CARDS
 
-        repeat.4
-            loc_load.0 mem_load
-            # => [cb_1]
-            loc_load.1
-            # => [Ca, cb_1]
-            loc_load.2
-            # => [card_index, Ca, cb_1]
-            call.inter_unmask
-            # => [...]
-            loc_load.0 mem_loadw
-            # => [cb_4, cb_3, cb_2, cb_1]
-            movup.3 drop push.0
-            # => [0, cb_4, cb_3, cb_2]
-            loc_load.0 mem_storew dropw
-            # => [...]
-            # update card_index
-            loc_load.2 push.1 add loc_store.2
-        end
+        loc_load.0 mem_loadw drop drop swap
+        # => [Ca, cb_1]
+        loc_load.2
+        # => [card_index, Ca, cb_1]
+        call.inter_unmask
+        # => [...]
 
+        # update card_index
+        loc_load.2 push.1 add loc_store.2
+        
         loc_load.0 push.1 add
         loc_store.0
     end
+
+    loc_load.0 mem_load
+    # => [requester_id]
+    padw drop
+    # => [0, 0, 0, requester_id]
+    call.set_requester_data
 
     exec.note::get_assets drop mem_loadw
     # => [ASSET, ...]
