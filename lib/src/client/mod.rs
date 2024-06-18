@@ -4,7 +4,7 @@ use crate::notes::{
     create_play_bet_note, create_play_call_note, create_play_check_note, create_play_fold_note,
     create_play_raise_note, create_send_card_note, create_key_gen_note, create_shuffle_card_note,
     create_remask_note, create_set_cards_note, create_set_community_cards_note, create_unmask_note, 
-    create_inter_unmask_note, create_send_unmasked_cards_note
+    create_inter_unmask_note, create_send_unmasked_cards_note, create_set_hand_note
 };
 use crate::utils::{create_aze_store_path, load_config};
 use miden_client::client::rpc::NodeRpcClient;
@@ -469,6 +469,11 @@ pub trait AzeGameMethods {
         transaction_template: AzeTransactionTemplate,
     ) -> Result<TransactionRequest, ClientError>;
     fn build_aze_inter_unmask_tx_request(
+        &mut self,
+        // auth_info: AuthSecretKey,
+        transaction_template: AzeTransactionTemplate,
+    ) -> Result<TransactionRequest, ClientError>;
+    fn build_aze_set_hand_tx_request(
         &mut self,
         // auth_info: AuthSecretKey,
         transaction_template: AzeTransactionTemplate,
@@ -1697,6 +1702,83 @@ impl<N: NodeRpcClient, R: FeltRng, S: Store, A: TransactionAuthenticator> AzeGam
         Ok(TransactionRequest::new(
             sender_account_id,
             BTreeMap::new(),
+            vec![created_note],
+            vec![],
+            Some(tx_script),
+        ))
+    }
+
+    fn build_aze_set_hand_tx_request(
+        &mut self,
+        // auth_info: AuthSecretKey,
+        transaction_template: AzeTransactionTemplate,
+    ) -> Result<TransactionRequest, ClientError> {
+        let account_id = transaction_template.account_id();
+        let account_auth = self.store().get_account_auth(account_id)?;
+
+        let (sender_account_id, target_account_id, asset, cards) = match transaction_template {
+            AzeTransactionTemplate::SendCard(SendCardTransactionData {
+                asset,
+                sender_account_id,
+                target_account_id,
+                cards,
+            }) => (sender_account_id, target_account_id, asset, cards),
+            _ => panic!("Invalid transaction template"),
+        };
+
+        let random_coin = self.get_random_coin();
+
+        let created_note = create_set_hand_note(
+            self,
+            sender_account_id,
+            target_account_id,
+            [asset].to_vec(),
+            NoteType::Public,
+            random_coin,
+            cards,
+        )?;
+
+        let recipient = created_note
+            .recipient()
+            .digest()
+            .iter()
+            .map(|x| x.as_int().to_string())
+            .collect::<Vec<_>>()
+            .join(".");
+
+        let note_tag = created_note.metadata().tag().inner();
+        let note_type = NoteType::Public;
+
+        let tx_script = ProgramAst::parse(
+            &transaction_request::AUTH_SEND_ASSET_SCRIPT
+                .replace("{recipient}", &recipient)
+                .replace("{note_type}", &Felt::new(note_type as u64).to_string())
+                .replace("{tag}", &Felt::new(note_tag.into()).to_string())
+                .replace("{asset}", &prepare_word(&asset.into()).to_string()),
+        )
+        .expect("shipped MASM is well-formed");
+
+        let (pubkey_input, advice_map): (Word, Vec<Felt>) = match account_auth {
+            AuthSecretKey::RpoFalcon512(key) => (
+                key.public_key().into(),
+                key.to_bytes()
+                    .iter()
+                    .map(|a| Felt::new(*a as u64))
+                    .collect::<Vec<Felt>>(),
+            ),
+        };
+
+        let tx_script = {
+            let script_inputs = vec![(pubkey_input, advice_map)];
+            self.compile_tx_script(tx_script, script_inputs, vec![])?
+        };
+
+        println!("Created txn script");
+
+        Ok(TransactionRequest::new(
+            sender_account_id,
+            BTreeMap
+            ::new(),
             vec![created_note],
             vec![],
             Some(tx_script),

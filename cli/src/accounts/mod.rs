@@ -13,7 +13,7 @@ use aze_lib::client::{
 };
 use aze_lib::constants::{
     FIRST_PLAYER_INDEX, HIGHEST_BET, NO_OF_PLAYERS, PLAYER_INITIAL_BALANCE, SMALL_BUY_IN_AMOUNT,
-    PLAYER_DATA_SLOT, DEFAULT_ACTION_TYPE, PLAYER_CARD1_SLOT, TEMP_CARD_SLOT,
+    PLAYER_DATA_SLOT, DEFAULT_ACTION_TYPE, PLAYER_CARD1_SLOT, PLAYER_CARD2_SLOT, TEMP_CARD_SLOT,
 };
 use aze_lib::executor::execute_tx_and_sync;
 use aze_lib::notes::{consume_notes, mint_note};
@@ -483,6 +483,41 @@ pub async fn send_unmasked_cards(account_id: AccountId, requester_id: AccountId)
     let transaction_template = AzeTransactionTemplate::SendUnmaskedCards(unmask_data);
     let txn_request = client
         .build_aze_send_unmasked_cards_tx_request(transaction_template)
+        .unwrap();
+    execute_tx_and_sync(&mut client, txn_request.clone()).await;
+    println!("Note sent!");
+}
+
+pub async fn commit_hand(account_id: AccountId, game_account_id: AccountId) {
+    let mut client: AzeClient = create_aze_client();
+    let (player_account, _) = client.get_account(account_id).unwrap();
+
+    // send commit hand note to game account
+    let (faucet_account, _) = client
+        .new_account(AccountTemplate::FungibleFaucet {
+            token_symbol: TokenSymbol::new("MATIC").unwrap(),
+            decimals: 8,
+            max_supply: 1_000_000_000,
+            storage_mode: AccountStorageMode::Local,
+        })
+        .unwrap();
+    let fungible_asset = FungibleAsset::new(faucet_account.id(), SMALL_BUY_IN_AMOUNT as u64).unwrap();
+
+    let mut cards: [[Felt; 4]; 2] = [[Felt::ZERO; 4]; 2];
+    for (i, slot) in (PLAYER_CARD1_SLOT..PLAYER_CARD2_SLOT + 1).enumerate() {
+        let card = player_account.storage().get_item(slot);
+        cards[i] = card.into();
+    }
+
+    let commit_hand_data = SendCardTransactionData::new(   
+        Asset::Fungible(fungible_asset),
+        account_id,
+        game_account_id,
+        &cards,
+    );
+    let transaction_template = AzeTransactionTemplate::SendCard(commit_hand_data);
+    let txn_request = client
+        .build_aze_set_hand_tx_request(transaction_template)
         .unwrap();
     execute_tx_and_sync(&mut client, txn_request.clone()).await;
     println!("Note sent!");
