@@ -577,9 +577,9 @@ impl<N: NodeRpcClient, R: FeltRng, S: Store, A: TransactionAuthenticator> AzeGam
         account_storage_mode: AccountStorageMode,
         slot_data: GameStorageSlotData,
     ) -> Result<(Account, Word), ClientError> {
-        if let AccountStorageMode::OnChain = account_storage_mode {
-            todo!("Recording the account on chain is not supported yet");
-        }
+        // if let AccountStorageMode::OnChain = account_storage_mode {
+        //     todo!("Recording the account on chain is not supported yet");
+        // }
 
         let key_pair = SecretKey::with_rng(rng);
 
