@@ -28,6 +28,16 @@
   **Example usage:**
   ```sh
   aze-cli register -i John
+
+- ### aze-cli connect
+  Connect to the game broadcast server.
+
+  **Arguments:**
+    - `ws url`: Broadcast server url, generated when init command is run
+
+  **Example usage:**
+  ```sh
+  aze-cli connect -u ws://192.168.30.51:12044/ws/0x0ad5hs7gduiu3e
  
 - ### aze-cli action
   Performs the player's desired bet action.
