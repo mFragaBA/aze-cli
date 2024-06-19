@@ -9,14 +9,10 @@ use figment::{
     providers::{Format, Toml},
     Figment,
 };
-<<<<<<< HEAD
-use miden_objects::accounts:: AccountId;
-=======
 use miden_objects::{
     accounts::AccountId,
     Felt, FieldElement
 };
->>>>>>> feat/commit-hand
 use serde::Deserialize;
 use std::path::PathBuf;
 use tokio::task::LocalSet;
