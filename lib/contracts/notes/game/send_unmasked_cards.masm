@@ -5,6 +5,7 @@ use.miden::contracts::poker::poker
 
 const.NO_OF_CARDS=3
 const.TEMP_CARD_SLOT=103
+const.PLAYER_DATA_SLOT=56
 
 proc.receive_cards
     exec.account::set_item
@@ -27,18 +28,15 @@ begin
     loc_store.0
 
     # card_index
-    loc_load.0 add.NO_OF_CARDS
-    mem_load
-    # => [card_slot]
-    loc_store.2
+    push.TEMP_CARD_SLOT loc_store.2
 
     repeat.NO_OF_CARDS
 
         loc_load.0 mem_loadw drop drop
         # => [Cb, Ca]
         push.0 dup
-        #= => [0, 0, Cb, Ca]
-        dup push.0 neq
+        # => [0, 0, Cb, Ca]
+        dup.3 push.0 neq
         if.true
             loc_load.2
             # => [card_index, 0, 0, Cb, Ca]

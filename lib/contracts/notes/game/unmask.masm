@@ -33,7 +33,7 @@ begin
     loc_store.0
 
     # card_index
-    loc_load.0 add.NO_OF_CARDS
+    loc_load.0 push.NO_OF_CARDS add
     mem_load
     # => [card_slot]
     loc_store.2
