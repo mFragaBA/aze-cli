@@ -122,7 +122,7 @@ pub fn create_shuffle_card_note<R: FeltRng, N: NodeRpcClient, S: Store, A: Trans
     let aux = ZERO;
 
     let metadata = NoteMetadata::new(sender_account_id, NoteType::Public, tag, aux)?;
-    let vault = NoteAssets::new(assets)?;
+    let vault = NoteAssets::new(vec![])?;
     let recipient = NoteRecipient::new(serial_num, note_script, note_inputs);
 
     Ok(Note::new(vault, metadata, recipient))
