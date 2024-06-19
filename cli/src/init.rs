@@ -2,6 +2,7 @@ use crate::accounts::{ create_aze_game_account, consume_game_notes, send_communi
 use aze_lib::client::{ create_aze_client, AzeClient };
 use aze_lib::constants::{BUY_IN_AMOUNT, NO_OF_PLAYERS, SMALL_BLIND_AMOUNT, CURRENT_PHASE_SLOT};
 use aze_lib::broadcast::start_wss;
+use aze_lib::utils::{broadcast_message, Ws_config};
 use aze_types::accounts::AccountCreationError;
 use clap::{Parser, ValueEnum};
 use figment::{
@@ -70,7 +71,7 @@ impl InitCmd {
                     match start_wss(game_account_id.to_string(), &config_clone){
                         Some(ws_url) => {
                             println!("Game server started at: {}",ws_url);
-                            Ok(())
+                            Ok(ws_url)
                         }
                         None => {
                             return Err("Error starting ws server");
@@ -94,6 +95,27 @@ impl InitCmd {
                         if pre_phase + 1 != phase {
                             sleep(Duration::from_secs(5)).await;
                             continue;
+                        }
+                        
+                        // broadcast message if game ends
+                        if phase == 3 {
+                            let mut ws_url: String = String::new();
+
+                            match Ws_config::load(ws_config).url {
+                                Some(url) => {
+                                    ws_url = url;
+                                }
+
+                                None => {
+                                    eprintln!("Ws_config DNE, use init or connect command before action");
+                                }
+                            }
+                            let _ = broadcast_message(
+                                game_account_id.to_string(),
+                                ws_url.clone(),
+                                format!("🥲 Game Ended ... "),
+                            )
+                            .await;
                         }
 
                         // if phase changes, send community cards for unmasking
