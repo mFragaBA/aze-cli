@@ -9,13 +9,21 @@ edition = "2021"
 uuid = { version = "1.6.1", features = ["serde", "v4"], optional = true }
 figment = { version = "0.10", features = ["toml", "env"] }
 rand = { version = "0.8.5" }
-
-# miden-tx = { git = "https://github.com/0xPolygonMiden/miden-base.git", branch="dominik_spply_account_delta_storage_maps", default-features = false }
 miden-tx = { version = "*", default-features = false }
 aze-types = { path = "../types" }
 miden-client = { version = "0.3.0", features= ["concurrent","testing"] }
 miden-lib = { version = "*", features= ["concurrent","testing"] }
 miden-objects = { version = "*", default-features = false }
+tokio = { version = "1.0", features = ["full"] }
+warp = "0.3"
+tokio-tungstenite = "0.16"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+futures-util = "0.3"
+get_if_addrs = "0.5.3"
+log = "0.4"
+reqwest = { version = "0.11", features = ["json"] }
+url = "2.2"
 
 [dev-dependencies]
 

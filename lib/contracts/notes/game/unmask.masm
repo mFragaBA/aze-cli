@@ -1,0 +1,68 @@
+use.std::math::ecgfp5::group
+use.miden::account
+use.miden::note
+use.miden::contracts::wallets::basic->wallet
+
+const.SECRET_KEY_SLOT=53
+const.PLAYER_DATA_SLOT=56
+const.NO_OF_CARDS=3
+const.TEMP_CARD_SLOT=103
+
+proc.unmask
+    # => [card_index, ca, cb]
+    swap inv
+    # => [ca_inv, card_index, cb]
+    push.SECRET_KEY_SLOT exec.account::get_item
+    drop drop drop
+    # => [sk, ca_inv, card_index, cb]
+    exp
+    # => [ca_inv^sk, card_index, cb]
+    movup.2 mul
+    # => [M, card_index]
+    padw drop movup.4
+    # => [card_index, 0, 0, 0, M]
+    exec.account::set_item
+    dropw dropw
+end
+
+begin 
+    dropw
+    # store index
+    push.0 exec.note::get_inputs drop
+    # => [des_pointer]
+    loc_store.0
+
+    # card_index
+    loc_load.0 push.NO_OF_CARDS add
+    mem_load
+    # => [card_slot]
+    loc_store.2
+
+    repeat.NO_OF_CARDS
+
+        loc_load.0 mem_loadw drop drop swap
+        # => [Ca, cb_1]
+        dup push.0 neq
+        if.true
+            loc_load.2
+            # => [card_index, Ca, cb_1]
+            call.unmask
+            # => [...]
+            
+            # update card_index
+            loc_load.2 push.1 add loc_store.2
+        end
+
+        loc_load.0 push.1 add
+        loc_store.0
+    end
+
+    exec.note::get_assets drop mem_loadw
+    # => [ASSET, ...]
+
+    # load the asset and add it to the account
+    call.wallet::receive_asset
+    # => [...]
+
+    dropw
+end

@@ -9,7 +9,7 @@ use miden_objects::{
     AccountError, Felt, FieldElement, Word, ZERO,
 };
 
-use crate::constants::PLAYER_STATS_SLOTS;
+use crate::constants::{ PLAYER_STATS_SLOTS, SECRET_KEY_SLOT, DEFAULT_SKEY, MASKING_FACTOR_SLOT, DEFAULT_MASKING_FACTOR };
 use crate::storage::GameStorageSlotData;
 use miden_lib::{transaction::TransactionKernel, AuthScheme};
 
@@ -284,16 +284,7 @@ pub fn create_basic_aze_player_account(
     let account_assembler = TransactionKernel::assembler();
     let aze_player_account_code =
         AccountCode::new(aze_player_account_code_ast.clone(), &account_assembler)?;
-    let storage_map = StorageMap::with_entries([
-        (
-            RpoDigest::new([Felt::new(101), Felt::new(102), Felt::new(103), Felt::new(104)]),
-            [Felt::new(1_u64), Felt::new(2_u64), Felt::new(3_u64), Felt::new(4_u64)],
-        ),
-        (
-            RpoDigest::new([Felt::new(105), Felt::new(106), Felt::new(107), Felt::new(108)]),
-            [Felt::new(5_u64), Felt::new(6_u64), Felt::new(7_u64), Felt::new(8_u64)],
-        ),
-    ]).unwrap();    
+
     let aze_player_account_storage = AccountStorage::new(
         vec![
             SlotItem {
@@ -302,13 +293,38 @@ pub fn create_basic_aze_player_account(
                     slot_type: StorageSlotType::Value { value_arity: 0 },
                     value: storage_slot_0_data,
                 },
-            }, 
+            },
             SlotItem {
-                index: 10,
-                slot: StorageSlot::new_map(Word::from(storage_map.root())),
-            }
+                index: SECRET_KEY_SLOT,
+                slot: StorageSlot {
+                    slot_type: StorageSlotType::Value { value_arity: 0 },
+                    value: [Felt::from(DEFAULT_SKEY), Felt::ZERO, Felt::ZERO, Felt::ZERO],
+                },
+            },
+            SlotItem {
+                index: MASKING_FACTOR_SLOT,
+                slot: StorageSlot {
+                    slot_type: StorageSlotType::Value { value_arity: 0 },
+                    value: [Felt::from(DEFAULT_MASKING_FACTOR), Felt::ZERO, Felt::ZERO, Felt::ZERO],
+                },
+            },
+            // for testing only,
+            SlotItem {
+                index: 100,
+                slot: StorageSlot {
+                    slot_type: StorageSlotType::Value { value_arity: 0 },
+                    value: [Felt::new(15911754940807515092), Felt::new(127677651693142771), Felt::ZERO, Felt::ZERO],
+                },
+            },
+            SlotItem {
+                index: 101,
+                slot: StorageSlot {
+                    slot_type: StorageSlotType::Value { value_arity: 0 },
+                    value: [Felt::new(15911754940807515092), Felt::new(7730906248022274125), Felt::ZERO, Felt::ZERO],
+                },
+            },
         ],
-        vec![storage_map],
+        vec![],
     )?;
     let account_vault = AssetVault::new(&[]).expect("error on empty vault");
 

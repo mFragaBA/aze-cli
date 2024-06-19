@@ -1,0 +1,86 @@
+use.std::math::ecgfp5::group
+use.miden::account
+use.miden::note
+use.miden::contracts::wallets::basic->wallet
+
+const.G=7
+const.SECRET_KEY_SLOT=53
+const.PUBLIC_KEY_SLOT=54
+const.MASKING_FACTOR_SLOT=55
+const.PLAYER_DATA_SLOT=56
+const.NO_OF_CARDS=3
+const.REQUESTER_INFO_SLOT=102
+const.TEMP_CARD_SLOT=103
+
+proc.inter_unmask
+    # => [card_index, ca', cb']
+    swap push.G inv
+    # => [G_inv, ca', card_index, cb']
+    push.MASKING_FACTOR_SLOT exec.account::get_item
+    drop drop drop
+    # => [r, G_inv, ca', card_index, cb']
+    exp
+    # => [G_inv^r, ca', card_index, cb']
+    mul
+    # => [ca, card_index, cb']
+    movup.2 push.PUBLIC_KEY_SLOT exec.account::get_item
+    drop drop drop
+    # => [H, cb', ca, card_index]
+    inv push.MASKING_FACTOR_SLOT exec.account::get_item
+    drop drop drop
+    # => [r, H_inv, cb', ca, card_index]
+    exp mul
+    # => [cb, ca, card_index]
+    push.0 dup movup.4
+    # => [card_index, 0, 0, cb, ca]
+    exec.account::set_item
+    dropw dropw
+end
+
+proc.set_requester_data
+    # => [0, 0, 0, requester_id]
+    push.REQUESTER_INFO_SLOT exec.account::set_item
+    dropw dropw 
+end
+
+begin 
+    dropw
+    # store index
+    push.0 exec.note::get_inputs drop
+    # => [des_pointer]
+    loc_store.0
+
+    # card_index
+    push.TEMP_CARD_SLOT loc_store.2
+
+    repeat.NO_OF_CARDS
+
+        loc_load.0 mem_loadw drop drop swap
+        # => [Ca, cb_1]
+        loc_load.2
+        # => [card_index, Ca, cb_1]
+        call.inter_unmask
+        # => [...]
+
+        # update card_index
+        loc_load.2 push.1 add loc_store.2
+        
+        loc_load.0 push.1 add
+        loc_store.0
+    end
+
+    loc_load.0 mem_load
+    # => [requester_id]
+    padw drop
+    # => [0, 0, 0, requester_id]
+    call.set_requester_data
+
+    exec.note::get_assets drop mem_loadw
+    # => [ASSET, ...]
+
+    # load the asset and add it to the account
+    call.wallet::receive_asset
+    # => [...]
+
+    dropw
+end

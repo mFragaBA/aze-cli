@@ -1,0 +1,48 @@
+use.std::math::ecgfp5::group
+use.miden::account
+use.miden::note
+use.miden::contracts::wallets::basic->wallet
+
+const.FIRST_PLAYER_INDEX=64
+const.HAND_OFFSET=11
+const.PLAYER_STATS_SLOTS=13
+
+proc.set_cards
+    # => [card_index, Cb, Ca]
+    push.0 dup movup.2
+    # => [card_index, 0, 0, Cb, Ca]
+    exec.account::set_item
+    dropw dropw
+end
+
+begin 
+    dropw
+    # store index
+    push.0 exec.note::get_inputs drop
+    # => [des_pointer]
+
+    # card_index
+    dup add.1 mem_load
+    # => [player_index, des_pointer]
+    # Calculate current_player_index = 64 + 13 * player_index + 0
+    mul.PLAYER_STATS_SLOTS add.FIRST_PLAYER_INDEX
+    add.HAND_OFFSET
+    # => [current_player_hand_index, des_pointer]
+
+    swap mem_loadw drop drop
+    # => [Card2, Card1, current_player_hand_index]
+    movup.2
+    # => [current_player_hand_index, Card2, Card1]
+    
+    call.set_cards
+    # => [...]
+
+    exec.note::get_assets drop mem_loadw
+    # => [ASSET, ...]
+
+    # load the asset and add it to the account
+    call.wallet::receive_asset
+    # => [...]
+
+    dropw
+end

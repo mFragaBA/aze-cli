@@ -682,9 +682,17 @@ export.play_bet
     exec.update_current_turn
 end
 
+export.set_cards
+    # => [card_index, Cb, Ca]
+    push.0 dup movup.2
+    # => [card_index, 0, 0, Cb, Ca]
+    exec.account::set_item
+    dropw dropw
+end
 
 # some basic account methods 
 
 export.basic_wallet::receive_asset
 export.basic_wallet::send_asset
 export.basic::auth_tx_rpo_falcon512
+export.account::get_item
