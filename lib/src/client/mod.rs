@@ -702,7 +702,6 @@ impl<N: NodeRpcClient, R: FeltRng, S: Store, A: TransactionAuthenticator> AzeGam
             self.compile_tx_script(tx_script, script_inputs, vec![])?
         };
 
-        println!("Created txn script");
 
         Ok(TransactionRequest::new(
             sender_account_id,
@@ -778,7 +777,6 @@ impl<N: NodeRpcClient, R: FeltRng, S: Store, A: TransactionAuthenticator> AzeGam
             self.compile_tx_script(tx_script, script_inputs, vec![])?
         };
 
-        println!("Created txn script");
 
         Ok(TransactionRequest::new(
             sender_account_id,
@@ -854,7 +852,6 @@ impl<N: NodeRpcClient, R: FeltRng, S: Store, A: TransactionAuthenticator> AzeGam
             self.compile_tx_script(tx_script, script_inputs, vec![])?
         };
 
-        println!("Created txn script");
 
         Ok(TransactionRequest::new(
             sender_account_id,
@@ -932,7 +929,6 @@ impl<N: NodeRpcClient, R: FeltRng, S: Store, A: TransactionAuthenticator> AzeGam
             self.compile_tx_script(tx_script, script_inputs, vec![])?
         };
 
-        println!("Created txn script");
 
         Ok(TransactionRequest::new(
             sender_account_id,
@@ -1008,7 +1004,7 @@ impl<N: NodeRpcClient, R: FeltRng, S: Store, A: TransactionAuthenticator> AzeGam
             self.compile_tx_script(tx_script, script_inputs, vec![])?
         };
 
-        println!("Created txn script");
+        
 
         Ok(TransactionRequest::new(
             sender_account_id,
@@ -1084,7 +1080,7 @@ impl<N: NodeRpcClient, R: FeltRng, S: Store, A: TransactionAuthenticator> AzeGam
             self.compile_tx_script(tx_script, script_inputs, vec![])?
         };
 
-        println!("Created txn script");
+        
 
         Ok(TransactionRequest::new(
             sender_account_id,
@@ -1158,7 +1154,7 @@ impl<N: NodeRpcClient, R: FeltRng, S: Store, A: TransactionAuthenticator> AzeGam
             self.compile_tx_script(tx_script, script_inputs, vec![])?
         };
 
-        println!("Created txn script");
+        
 
         Ok(TransactionRequest::new(
             sender_account_id,
@@ -1232,7 +1228,7 @@ impl<N: NodeRpcClient, R: FeltRng, S: Store, A: TransactionAuthenticator> AzeGam
             self.compile_tx_script(tx_script, script_inputs, vec![])?
         };
 
-        println!("Created txn script");
+        
 
         Ok(TransactionRequest::new(
             sender_account_id,
@@ -1306,7 +1302,7 @@ impl<N: NodeRpcClient, R: FeltRng, S: Store, A: TransactionAuthenticator> AzeGam
             self.compile_tx_script(tx_script, script_inputs, vec![])?
         };
 
-        println!("Created txn script");
+        
 
         Ok(TransactionRequest::new(
             sender_account_id,
@@ -1382,7 +1378,7 @@ impl<N: NodeRpcClient, R: FeltRng, S: Store, A: TransactionAuthenticator> AzeGam
             self.compile_tx_script(tx_script, script_inputs, vec![])?
         };
 
-        println!("Created txn script");
+        
 
         Ok(TransactionRequest::new(
             sender_account_id,
@@ -1461,7 +1457,7 @@ impl<N: NodeRpcClient, R: FeltRng, S: Store, A: TransactionAuthenticator> AzeGam
             self.compile_tx_script(tx_script, script_inputs, vec![])?
         };
 
-        println!("Created txn script");
+        
 
         Ok(TransactionRequest::new(
             sender_account_id,
@@ -1538,7 +1534,7 @@ impl<N: NodeRpcClient, R: FeltRng, S: Store, A: TransactionAuthenticator> AzeGam
             self.compile_tx_script(tx_script, script_inputs, vec![])?
         };
 
-        println!("Created txn script");
+        
 
         Ok(TransactionRequest::new(
             sender_account_id,
@@ -1618,7 +1614,7 @@ impl<N: NodeRpcClient, R: FeltRng, S: Store, A: TransactionAuthenticator> AzeGam
             self.compile_tx_script(tx_script, script_inputs, vec![])?
         };
 
-        println!("Created txn script");
+        
 
         Ok(TransactionRequest::new(
             sender_account_id,
@@ -1697,7 +1693,7 @@ impl<N: NodeRpcClient, R: FeltRng, S: Store, A: TransactionAuthenticator> AzeGam
             self.compile_tx_script(tx_script, script_inputs, vec![])?
         };
 
-        println!("Created txn script");
+        
 
         Ok(TransactionRequest::new(
             sender_account_id,
@@ -1773,7 +1769,7 @@ impl<N: NodeRpcClient, R: FeltRng, S: Store, A: TransactionAuthenticator> AzeGam
             self.compile_tx_script(tx_script, script_inputs, vec![])?
         };
 
-        println!("Created txn script");
+        
 
         Ok(TransactionRequest::new(
             sender_account_id,

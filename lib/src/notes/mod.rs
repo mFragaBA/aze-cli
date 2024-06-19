@@ -48,7 +48,7 @@ pub fn create_send_card_note<
     let card_2 = cards[1];
 
     let mut inputs = [card_1.as_slice(), card_2.as_slice()].concat();
-    println!("card Inputs: {:?}", inputs);
+    
 
     let note_inputs = NoteInputs::new(inputs).unwrap();
     let tag = NoteTag::from_account_id(target_account_id, NoteExecutionHint::Local)?;
@@ -113,7 +113,7 @@ pub fn create_shuffle_card_note<R: FeltRng, N: NodeRpcClient, S: Store, A: Trans
     }
     let player_data = player_data.iter().map(|x| Felt::new(*x)).collect::<Vec<Felt>>();
     let inputs = [cards, player_data].concat();
-    println!("Inputs: {}: {:?}", inputs.len(), inputs);
+    
     
     let note_inputs = NoteInputs::new(inputs).unwrap();
     let tag = NoteTag::from_account_id(target_account_id, NoteExecutionHint::Local)?;
@@ -148,7 +148,7 @@ pub fn create_remask_note<R: FeltRng, N: NodeRpcClient, S: Store, A: Transaction
     encrypted_cards = [encrypted_cards, vec![cards[0][0]]].concat();
     let player_data = player_data.iter().map(|x| Felt::new(*x)).collect::<Vec<Felt>>();
     let inputs = [encrypted_cards, vec![Felt::ZERO, Felt::ZERO, Felt::ZERO], player_data].concat();
-    println!("Encrypted Cards: {}: {:?}", inputs.len(), inputs);
+    
 
     let note_inputs = NoteInputs::new(inputs).unwrap();
     let tag = NoteTag::from_account_id(target_account_id, NoteExecutionHint::Local)?;
@@ -329,7 +329,7 @@ pub fn create_set_cards_note<
         inputs = [inputs, vec![card[1]]].concat();
     }
     inputs = [inputs, vec![cards[0][0]]].concat();
-    println!("Inputs: {}: {:?}", inputs.len(), inputs);
+    
 
     let note_inputs = NoteInputs::new(inputs).unwrap();
     let tag = NoteTag::from_account_id(target_account_id, NoteExecutionHint::Local)?;
@@ -365,7 +365,7 @@ pub fn create_set_community_cards_note<
     for card in cards.iter().take(FLOP_NO_OF_CARDS as usize) {
         inputs = [inputs, vec![card[0], card[1], Felt::ZERO, Felt::ZERO]].concat();
     }
-    println!("Inputs: {}: {:?}", inputs.len(), inputs);
+    
 
     let note_inputs = NoteInputs::new(inputs).unwrap();
     let tag = NoteTag::from_account_id(target_account_id, NoteExecutionHint::Local)?;
@@ -398,7 +398,7 @@ pub fn create_send_unmasked_cards_note<R: FeltRng, N: NodeRpcClient, S: Store, A
         unmasked_cards = [unmasked_cards, vec![card[0], card[1], Felt::ZERO, Felt::ZERO]].concat();
     }
     let inputs = [unmasked_cards, player_data.to_vec()].concat();
-    println!("Inputs: {}: {:?}", inputs.len(), inputs);
+    
 
     let note_inputs = NoteInputs::new(inputs).unwrap();
     let tag = NoteTag::from_account_id(target_account_id, NoteExecutionHint::Local)?;
@@ -431,7 +431,7 @@ pub fn create_unmask_note<R: FeltRng, N: NodeRpcClient, S: Store, A: Transaction
         encrypted_cards = [encrypted_cards, vec![card[0], card[1], Felt::ZERO, Felt::ZERO]].concat();
     }
     let inputs = [encrypted_cards, vec![Felt::from(card_slot)]].concat();
-    println!("Inputs: {}: {:?}", inputs.len(), inputs);
+    
 
     let note_inputs = NoteInputs::new(inputs).unwrap();
     let tag = NoteTag::from_account_id(target_account_id, NoteExecutionHint::Local)?;
@@ -469,7 +469,7 @@ pub fn create_inter_unmask_note<
         encrypted_cards = [encrypted_cards, vec![card[0], card[1], Felt::ZERO, Felt::ZERO]].concat();
     }
     encrypted_cards = [encrypted_cards, vec![Felt::from(requester_id)]].concat();
-    println!("Encrypted Cards: {}: {:?}", encrypted_cards.len(), encrypted_cards);
+    
 
     let note_inputs = NoteInputs::new(encrypted_cards).unwrap();
     let tag = NoteTag::from_account_id(target_account_id, NoteExecutionHint::Local)?;
@@ -505,7 +505,7 @@ pub fn create_set_hand_note<
     for card in cards.iter() {
         inputs = [inputs, vec![card[0], card[1], Felt::ZERO, Felt::ZERO]].concat();
     }
-    println!("Inputs: {}: {:?}", inputs.len(), inputs);
+    
 
     let note_inputs = NoteInputs::new(inputs).unwrap();
     let tag = NoteTag::from_account_id(target_account_id, NoteExecutionHint::Local)?;
@@ -533,12 +533,12 @@ pub async fn mint_note(
     let tx_template =
         TransactionTemplate::MintFungibleAsset(fungible_asset, basic_account_id, note_type);
 
-    println!("Minting Asset");
+    
     let tx_request = client.build_transaction_request(tx_template).unwrap();
     let _ = execute_tx_and_sync(client, tx_request.clone()).await;
 
     // Check that note is committed and return it
-    println!("Fetching Committed Notes...");
+    
     let note_id = tx_request.expected_output_notes()[0].id();
     let note = client.get_input_note(note_id).unwrap();
     note.try_into().unwrap()
@@ -551,7 +551,7 @@ pub async fn consume_notes(
 ) {
     let tx_template =
         TransactionTemplate::ConsumeNotes(account_id, input_notes.iter().map(|n| n.id()).collect());
-    println!("Consuming Note...");
+    
     let tx_request: TransactionRequest = client.build_transaction_request(tx_template).unwrap();
     execute_tx_and_sync(client, tx_request).await;
 }

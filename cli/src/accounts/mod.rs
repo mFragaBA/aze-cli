@@ -77,9 +77,6 @@ pub async fn create_aze_game_account(
 
     let game_account_id = game_account.id();
 
-    println!("Account created: {:?}", game_account_id);
-
-    println!("First client consuming note");
     let note = mint_note(
         &mut client,
         game_account_id,
@@ -87,7 +84,6 @@ pub async fn create_aze_game_account(
         NoteType::Public,
     )
     .await;
-    println!("Minted note");
     consume_notes(&mut client, game_account_id, &[note]).await;
 
     // Send note for shuffling and encryption
@@ -105,7 +101,6 @@ pub async fn create_aze_game_account(
         .build_aze_shuffle_card_tx_request(transaction_template)
         .unwrap();
     execute_tx_and_sync(&mut client, txn_request.clone()).await;
-    println!("Note sent!");
     
     Ok(game_account_id)
 }
@@ -168,7 +163,6 @@ pub async fn create_aze_player_account(
         .build_aze_key_gen_tx_request(transaction_template)
         .unwrap();
     execute_tx_and_sync(&mut client, txn_request.clone()).await;
-    println!("Note sent!");
     let note_id = txn_request.expected_output_notes()[0].id();
     let note = client.get_input_note(note_id).unwrap();
     consume_notes(&mut client, player_account.id(), &[note.try_into().unwrap()]).await;
@@ -187,7 +181,6 @@ pub async fn consume_game_notes(account_id: AccountId) {
         let tx_template = TransactionTemplate::ConsumeNotes(account_id, vec![consumable_note.note.id()]);
         let tx_request = client.build_transaction_request(tx_template).unwrap();
         execute_tx_and_sync(&mut client, tx_request).await;
-        println!("Waiting...");
         sleep(Duration::from_secs(5)).await;
     }
 }
@@ -233,7 +226,6 @@ pub async fn enc_action(action_type: u64, account_id: AccountId, target_account:
             .build_aze_set_cards_tx_request(transaction_template)
             .unwrap();
         execute_tx_and_sync(&mut client, txn_request.clone()).await;
-        println!("Note sent!");
         return
     }
 
@@ -253,7 +245,6 @@ pub async fn enc_action(action_type: u64, account_id: AccountId, target_account:
         .build_aze_remask_tx_request(transaction_template)
         .unwrap();
     execute_tx_and_sync(&mut client, txn_request.clone()).await;
-    println!("Note sent!");
 }
 
 pub async fn p2p_unmask_flow(sender_account_id: AccountId, cards: [[Felt; 4]; 3]) -> Result<(), String> {
@@ -291,7 +282,6 @@ pub async fn p2p_unmask_flow(sender_account_id: AccountId, cards: [[Felt; 4]; 3]
         .build_aze_inter_unmask_tx_request(transaction_template)
         .unwrap();
     execute_tx_and_sync(&mut client, txn_request.clone()).await;
-    println!("Note sent!");
 
     Ok(())
 }
@@ -328,7 +318,6 @@ pub async fn self_unmask(account_id: AccountId, card_slot: u8) -> Result<(), Str
         .build_aze_unmask_tx_request(transaction_template)
         .unwrap();
     execute_tx_and_sync(&mut client, txn_request.clone()).await;
-    println!("Note sent!");
     let note_id = txn_request.expected_output_notes()[0].id();
     let note = client.get_input_note(note_id).unwrap();
     consume_notes(&mut client, account_id, &[note.try_into().unwrap()]).await;
@@ -361,7 +350,6 @@ pub async fn send_community_cards(account_id: AccountId, receiver_account_id: Ac
         .build_aze_set_community_cards_tx_request(transaction_template)
         .unwrap();
     execute_tx_and_sync(&mut client, txn_request.clone()).await;
-    println!("Note sent!");
 }
 
 pub async fn send_unmasked_cards(account_id: AccountId, requester_id: AccountId) {
@@ -398,7 +386,6 @@ pub async fn send_unmasked_cards(account_id: AccountId, requester_id: AccountId)
         .build_aze_send_unmasked_cards_tx_request(transaction_template)
         .unwrap();
     execute_tx_and_sync(&mut client, txn_request.clone()).await;
-    println!("Note sent!");
 }
 
 pub async fn commit_hand(account_id: AccountId, game_account_id: AccountId) {
@@ -433,5 +420,4 @@ pub async fn commit_hand(account_id: AccountId, game_account_id: AccountId) {
         .build_aze_set_hand_tx_request(transaction_template)
         .unwrap();
     execute_tx_and_sync(&mut client, txn_request.clone()).await;
-    println!("Note sent!");
 }
