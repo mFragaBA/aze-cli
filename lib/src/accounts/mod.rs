@@ -307,7 +307,22 @@ pub fn create_basic_aze_player_account(
                     slot_type: StorageSlotType::Value { value_arity: 0 },
                     value: [Felt::from(DEFAULT_MASKING_FACTOR), Felt::ZERO, Felt::ZERO, Felt::ZERO],
                 },
-            }
+            },
+            // for testing only,
+            SlotItem {
+                index: 100,
+                slot: StorageSlot {
+                    slot_type: StorageSlotType::Value { value_arity: 0 },
+                    value: [Felt::new(15911754940807515092), Felt::new(127677651693142771), Felt::ZERO, Felt::ZERO],
+                },
+            },
+            SlotItem {
+                index: 101,
+                slot: StorageSlot {
+                    slot_type: StorageSlotType::Value { value_arity: 0 },
+                    value: [Felt::new(15911754940807515092), Felt::new(7730906248022274125), Felt::ZERO, Felt::ZERO],
+                },
+            },
         ],
         vec![],
     )?;

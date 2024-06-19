@@ -3,6 +3,10 @@ name = "aze-cli"
 version = "0.1.0"
 edition = "2021"
 
+[[bin]]
+name = "aze-cli"
+path = "src/main.rs"
+
 [dependencies]
 aze-enc = { git = "https://github.com/RizeLabs/elgamal-ecgfp5.git", branch = "main" }
 aze-lib = { path = "../lib" }

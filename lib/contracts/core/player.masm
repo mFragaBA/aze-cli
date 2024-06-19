@@ -6,6 +6,8 @@ const.G=7
 const.SECRET_KEY_SLOT=53
 const.PUBLIC_KEY_SLOT=54
 const.MASKING_FACTOR_SLOT=55
+const.PLAYER_DATA_SLOT=56
+const.REQUESTER_INFO_SLOT=102
 const.TOTAL_CARDS=52
 const.SUIT_SIZE=13
 
@@ -96,6 +98,128 @@ export.encrypt_shuffle
     end
     # => [post_shuffle_index, 0, 0, cb, ca]
 
+    exec.account::set_item
+    dropw dropw
+end
+
+export.remask_ca
+    # => [Ca]
+    push.MASKING_FACTOR_SLOT exec.account::get_item
+    drop drop drop
+    # => [masking_factor, Ca]
+    dup push.1 gt assert
+    push.G swap exp mul
+    # => [Ca']
+end
+
+export.remask_cb
+    # => [Cb]
+    push.MASKING_FACTOR_SLOT exec.account::get_item
+    drop drop drop
+    # => [masking_factor, Cb]
+    push.PUBLIC_KEY_SLOT exec.account::get_item
+    drop drop drop
+    # => [H, r, Cb]
+    swap
+    # Check that 1 < r.
+    dup push.1 gt assert
+    exp
+    mul 
+end
+
+export.remask_shuffle
+    # => [card_index, ca, cb]
+    loc_store.0
+    # => [ca, cb]
+    exec.remask_ca
+    # => [ca', cb]
+    loc_store.1
+    # => [cb]
+    exec.remask_cb
+    # => [cb']
+    loc_load.1
+    # => [ca', cb']
+    swap push.0 dup
+    # => [0, 0, cb', ca']
+
+    # Shuffle
+    loc_load.0
+    # => [pre_shuffle_index, 0, 0, cb', ca']
+    push.MASKING_FACTOR_SLOT exec.account::get_item 
+    drop drop drop
+    # => [mf, pre_shuffle_index, 0, 0, cb', ca']
+    add
+    # => [post_shuffle_index, 0, 0, cb, ca]
+    dup push.TOTAL_CARDS gt
+
+    while.true
+        push.TOTAL_CARDS sub
+        dup push.TOTAL_CARDS gt
+    end
+    # => [post_shuffle_index, 0, 0, cb, ca]
+
+    exec.account::set_item
+    dropw dropw
+end
+
+export.set_player_data
+    # => [p4, p3, p2, action_type]
+    push.PLAYER_DATA_SLOT exec.account::set_item
+    dropw dropw 
+end
+
+export.set_requester_data
+    # => [0, 0, 0, requester_id]
+    push.REQUESTER_INFO_SLOT exec.account::set_item
+    dropw dropw 
+end
+
+export.unmask
+    # => [card_index, ca, cb]
+    swap inv
+    # => [ca_inv, card_index, cb]
+    push.SECRET_KEY_SLOT exec.account::get_item
+    drop drop drop
+    # => [sk, ca_inv, card_index, cb]
+    exp
+    # => [ca_inv^sk, card_index, cb]
+    movup.2 mul
+    # => [M, card_index]
+    padw drop movup.4
+    # => [card_index, 0, 0, 0, M]
+    exec.account::set_item
+    dropw dropw
+end
+
+export.inter_unmask
+    # => [card_index, ca', cb']
+    swap push.G inv
+    # => [G_inv, ca', card_index, cb']
+    push.MASKING_FACTOR_SLOT exec.account::get_item
+    drop drop drop
+    # => [r, G_inv, ca', card_index, cb']
+    exp
+    # => [G_inv^r, ca', card_index, cb']
+    mul
+    # => [ca, card_index, cb']
+    movup.2 push.PUBLIC_KEY_SLOT exec.account::get_item
+    drop drop drop
+    # => [H, cb', ca, card_index]
+    inv push.MASKING_FACTOR_SLOT exec.account::get_item
+    drop drop drop
+    # => [r, H_inv, cb', ca, card_index]
+    exp mul
+    # => [cb, ca, card_index]
+    push.0 dup movup.4
+    # => [card_index, 0, 0, cb, ca]
+    exec.account::set_item
+    dropw dropw
+end
+
+proc.set_cards
+    # => [card_index, Cb, Ca]
+    push.0 dup movup.2
+    # => [card_index, 0, 0, Cb, Ca]
     exec.account::set_item
     dropw dropw
 end
