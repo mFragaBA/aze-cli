@@ -1,3 +1,4 @@
+use crate::utils::{ get_faucet_id, get_note_asset };
 use aze_enc::{ keygen, mask, remask, inter_unmask, final_unmask, CardCipher };
 use aze_lib::accounts::create_basic_aze_player_account;
 use aze_lib::client::{
@@ -53,17 +54,8 @@ pub async fn create_aze_game_account(
         PLAYER_INITIAL_BALANCE,
     );
 
-    let (faucet_account, _) = client
-        .new_account(AccountTemplate::FungibleFaucet {
-            token_symbol: TokenSymbol::new("MATIC").unwrap(),
-            decimals: 8,
-            max_supply: 1_000_000_000,
-            storage_mode: AccountStorageMode::Local,
-        })
-        .unwrap();
-
-    let faucet_account_id = faucet_account.id();
-    let fungible_asset = FungibleAsset::new(faucet_account_id, SMALL_BUY_IN_AMOUNT as u64).unwrap();
+    let faucet_account_id = get_faucet_id();
+    let asset = get_note_asset();
 
     let (game_account, _) = client
         .new_game_account(
@@ -90,7 +82,7 @@ pub async fn create_aze_game_account(
     let sender_account_id = game_account_id;
     let target_account_id = AccountId::try_from(player_account_ids[0]).unwrap();
     let shuffle_card_data = ShuffleCardTransactionData::new(   
-        Asset::Fungible(fungible_asset),
+        asset,
         sender_account_id,
         target_account_id,
         [DEFAULT_ACTION_TYPE, player_account_ids[1], player_account_ids[2], player_account_ids[3]]
@@ -101,6 +93,9 @@ pub async fn create_aze_game_account(
         .build_aze_shuffle_card_tx_request(transaction_template)
         .unwrap();
     execute_tx_and_sync(&mut client, txn_request.clone()).await;
+    let note_id = txn_request.expected_output_notes()[0].id();
+    let note = client.get_input_note(note_id).unwrap();
+    consume_notes(&mut client, target_account_id, &[note.try_into().unwrap()]).await;
     
     Ok(game_account_id)
 }
@@ -134,27 +129,20 @@ pub async fn create_aze_player_account(
     );
 
     // keygen
-    let (faucet_account, _) = client
-        .new_account(AccountTemplate::FungibleFaucet {
-            token_symbol: TokenSymbol::new("MATIC").unwrap(),
-            decimals: 8,
-            max_supply: 1_000_000_000,
-            storage_mode: AccountStorageMode::Local,
-        })
-        .unwrap();
-    let fungible_asset = FungibleAsset::new(faucet_account.id(), SMALL_BUY_IN_AMOUNT as u64).unwrap();
+    let faucet_account_id = get_faucet_id();
+    let asset = get_note_asset();
 
     let note = mint_note(
         &mut client,
         player_account.id(),
-        faucet_account.id(),
+        faucet_account_id,
         NoteType::Public,
     )
     .await;
     consume_notes(&mut client, player_account.id(), &[note]).await;
 
     let gen_key_data = GenPrivateKeyTransactionData::new(  
-        Asset::Fungible(fungible_asset),
+        asset,
         player_account.id(),
         player_account.id(),
     );
@@ -194,29 +182,12 @@ pub async fn enc_action(action_type: u64, account_id: AccountId, target_account:
         cards[i] = card_digest.into();
     }
 
-    // fund account
-    let (faucet_account, _) = client
-        .new_account(AccountTemplate::FungibleFaucet {
-            token_symbol: TokenSymbol::new("MATIC").unwrap(),
-            decimals: 8,
-            max_supply: 1_000_000_000,
-            storage_mode: AccountStorageMode::Local,
-        })
-        .unwrap();
-    let fungible_asset = FungibleAsset::new(faucet_account.id(), SMALL_BUY_IN_AMOUNT as u64).unwrap();
-    let note = mint_note(
-        &mut client,
-        player_account.id(),
-        faucet_account.id(),
-        NoteType::Public,
-    )
-    .await;
-    consume_notes(&mut client, player_account.id(), &[note]).await;
+    let asset = get_note_asset();
 
     if action_type == 4 {
         // send set cards note to game account
         let set_cards_data = SetCardsTransactionData::new(   
-            Asset::Fungible(fungible_asset),
+            asset,
             player_account.id(),
             target_account,
             &cards,
@@ -234,7 +205,7 @@ pub async fn enc_action(action_type: u64, account_id: AccountId, target_account:
     let mut player_data = [action_type + 1, player_data[1].as_int(), player_data[2].as_int(), player_data[3].as_int()];
     player_data[action_type as usize] = account_id.into();
     let remask_data = RemaskTransactionData::new(   
-        Asset::Fungible(fungible_asset),
+        asset,
         account_id,
         target_account,
         &cards,
@@ -261,17 +232,9 @@ pub async fn p2p_unmask_flow(sender_account_id: AccountId, cards: [[Felt; 4]; 3]
     
     let receiver_account_id = AccountId::try_from(player_ids[next_player_idx as usize]).unwrap();
     // send inter-unmask note
-    let (faucet_account, _) = client
-        .new_account(AccountTemplate::FungibleFaucet {
-            token_symbol: TokenSymbol::new("MATIC").unwrap(),
-            decimals: 8,
-            max_supply: 1_000_000_000,
-            storage_mode: AccountStorageMode::Local,
-        })
-        .unwrap();
-    let fungible_asset = FungibleAsset::new(faucet_account.id(), SMALL_BUY_IN_AMOUNT as u64).unwrap();
+    let asset = get_note_asset();
     let inter_unmask_data = InterUnmaskTransactionData::new(   
-        Asset::Fungible(fungible_asset),
+        asset,
         sender_account_id,
         receiver_account_id,
         &cards,
@@ -297,17 +260,9 @@ pub async fn self_unmask(account_id: AccountId, card_slot: u8) -> Result<(), Str
     }
 
     // send unmask note
-    let (faucet_account, _) = client
-        .new_account(AccountTemplate::FungibleFaucet {
-            token_symbol: TokenSymbol::new("MATIC").unwrap(),
-            decimals: 8,
-            max_supply: 1_000_000_000,
-            storage_mode: AccountStorageMode::Local,
-        })
-        .unwrap();
-    let fungible_asset = FungibleAsset::new(faucet_account.id(), SMALL_BUY_IN_AMOUNT as u64).unwrap();
+    let asset = get_note_asset();
     let unmask_data = UnmaskTransactionData::new(   
-        Asset::Fungible(fungible_asset),
+        asset,
         account_id,
         account_id,
         &cards,
@@ -330,17 +285,9 @@ pub async fn send_community_cards(account_id: AccountId, receiver_account_id: Ac
     let (player_account, _) = client.get_account(account_id).unwrap();
 
     // send set cards note to game account
-    let (faucet_account, _) = client
-        .new_account(AccountTemplate::FungibleFaucet {
-            token_symbol: TokenSymbol::new("MATIC").unwrap(),
-            decimals: 8,
-            max_supply: 1_000_000_000,
-            storage_mode: AccountStorageMode::Local,
-        })
-        .unwrap();
-    let fungible_asset = FungibleAsset::new(faucet_account.id(), SMALL_BUY_IN_AMOUNT as u64).unwrap();
+    let asset = get_note_asset();
     let set_cards_data = SetCardsTransactionData::new(   
-        Asset::Fungible(fungible_asset),
+        asset,
         account_id,
         receiver_account_id,
         &cards,
@@ -363,19 +310,11 @@ pub async fn send_unmasked_cards(account_id: AccountId, requester_id: AccountId)
     }
 
     // send set unmasked cards note
-    let (faucet_account, _) = client
-        .new_account(AccountTemplate::FungibleFaucet {
-            token_symbol: TokenSymbol::new("MATIC").unwrap(),
-            decimals: 8,
-            max_supply: 1_000_000_000,
-            storage_mode: AccountStorageMode::Local,
-        })
-        .unwrap();
-    let fungible_asset = FungibleAsset::new(faucet_account.id(), SMALL_BUY_IN_AMOUNT as u64).unwrap();
+    let asset = get_note_asset();
     let player_data = player_account.storage().get_item(PLAYER_DATA_SLOT).as_elements().to_vec();
     let action_type = player_data[0].as_int() as u8 + NO_OF_PLAYERS;
     let unmask_data = SendUnmaskedCardsTransactionData::new(   
-        Asset::Fungible(fungible_asset),
+        asset,
         account_id,
         requester_id,
         &cards,
@@ -393,15 +332,7 @@ pub async fn commit_hand(account_id: AccountId, game_account_id: AccountId) {
     let (player_account, _) = client.get_account(account_id).unwrap();
 
     // send commit hand note to game account
-    let (faucet_account, _) = client
-        .new_account(AccountTemplate::FungibleFaucet {
-            token_symbol: TokenSymbol::new("MATIC").unwrap(),
-            decimals: 8,
-            max_supply: 1_000_000_000,
-            storage_mode: AccountStorageMode::Local,
-        })
-        .unwrap();
-    let fungible_asset = FungibleAsset::new(faucet_account.id(), SMALL_BUY_IN_AMOUNT as u64).unwrap();
+    let asset = get_note_asset();
 
     let mut cards: [[Felt; 4]; 2] = [[Felt::ZERO; 4]; 2];
     for (i, slot) in (PLAYER_CARD1_SLOT..PLAYER_CARD2_SLOT + 1).enumerate() {
@@ -410,7 +341,7 @@ pub async fn commit_hand(account_id: AccountId, game_account_id: AccountId) {
     }
 
     let commit_hand_data = SendCardTransactionData::new(   
-        Asset::Fungible(fungible_asset),
+        asset,
         account_id,
         game_account_id,
         &cards,

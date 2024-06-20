@@ -6,6 +6,7 @@ pub const DEFAULT_AUTH_SCRIPT: &str = "
     end
 ";
 
+pub const FAUCET_ACCOUNT_ID: u64 = 2453430428770133747;
 pub const CLIENT_CONFIG_FILE_NAME: &str = "miden-client.toml";
 pub const BUY_IN_AMOUNT: u64 = 1000;
 pub const SMALL_BUY_IN_AMOUNT: u8 = 100;

@@ -7,6 +7,7 @@ mod peek_hand;
 mod register;
 mod connect;
 mod stats;
+mod utils;
 use self::{ action::ActionCmd, init::InitCmd, consume_notes::ConsumeNotesCmd, register::RegisterCmd, connect::ConnectCmd, stats::StatsCmd, peek_hand::PeekHandCmd };
 use clap::Parser;
 
