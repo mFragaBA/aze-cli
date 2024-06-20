@@ -843,12 +843,21 @@ impl<N: NodeRpcClient, R: FeltRng, S: Store, A: TransactionAuthenticator> AzeGam
                 use.miden::contracts::auth::basic->auth_tx
                 use.miden::contracts::wallets::basic->wallet
                 use.miden::tx
+
+                proc.tx_state_change
+                    push.1 exec.account::get_item
+                    push.200 exec.account::set_item
+                    dropw dropw
+                end
+
                 begin
                     push.{recipient}
                     push.{note_type}
                     push.{tag}
                     call.tx::create_note
                     dropw dropw
+                    call.tx_state_change dropw
+                    call.auth_tx::auth_tx_rpo_falcon512
                     # => []
                 end
             ",  

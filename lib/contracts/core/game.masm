@@ -690,7 +690,11 @@ export.set_cards
     dropw dropw
 end
 
-# some basic account methods 
+export.tx_state_change
+    push.1 exec.account::get_item
+    push.200 exec.account::set_item
+    dropw dropw
+end
 
 export.basic_wallet::receive_asset
 export.basic_wallet::send_asset
