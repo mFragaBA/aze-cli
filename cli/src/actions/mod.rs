@@ -1,3 +1,4 @@
+use crate::utils::{ get_faucet_id, get_note_asset };
 use aze_lib::client::{
     create_aze_client, AzeAccountTemplate, AzeClient, AzeGameMethods, AzeTransactionTemplate,
     PlayBetTransactionData, PlayCallTransactionData, PlayCheckTransactionData,
@@ -41,22 +42,13 @@ pub async fn raise(
     )
     .await;
 
-    let (faucet_account, _) = client
-        .new_account(AccountTemplate::FungibleFaucet {
-            token_symbol: TokenSymbol::new("MATIC").unwrap(),
-            decimals: 8,
-            max_supply: 1_000_000_000,
-            storage_mode: AccountStorageMode::Local,
-        })
-        .unwrap();
-    let fungible_asset =
-        FungibleAsset::new(faucet_account.id(), SMALL_BUY_IN_AMOUNT as u64).unwrap();
+    let asset = get_note_asset();
 
     // request highest bet from game account client
     let highest_bet = 5; // for now
 
     let playraise_txn_data = PlayRaiseTransactionData::new(
-        Asset::Fungible(fungible_asset),
+        asset,
         player_account_id,
         game_account_id,
         highest_bet as u8 + amount.unwrap(),
@@ -100,19 +92,10 @@ pub async fn call(
     )
     .await;
 
-    let (faucet_account, _) = client
-        .new_account(AccountTemplate::FungibleFaucet {
-            token_symbol: TokenSymbol::new("MATIC").unwrap(),
-            decimals: 8,
-            max_supply: 1_000_000_000,
-            storage_mode: AccountStorageMode::Local,
-        })
-        .unwrap();
-    let fungible_asset =
-        FungibleAsset::new(faucet_account.id(), SMALL_BUY_IN_AMOUNT as u64).unwrap();
+    let asset = get_note_asset();
 
     let playcall_txn_data = PlayCallTransactionData::new(
-        Asset::Fungible(fungible_asset),
+        asset,
         player_account_id,
         game_account_id,
     );
@@ -155,19 +138,10 @@ pub async fn check(
     )
     .await;
 
-    let (faucet_account, _) = client
-        .new_account(AccountTemplate::FungibleFaucet {
-            token_symbol: TokenSymbol::new("MATIC").unwrap(),
-            decimals: 8,
-            max_supply: 1_000_000_000,
-            storage_mode: AccountStorageMode::Local,
-        })
-        .unwrap();
-    let fungible_asset =
-        FungibleAsset::new(faucet_account.id(), SMALL_BUY_IN_AMOUNT as u64).unwrap();
+    let asset = get_note_asset();
 
     let playcheck_txn_data = PlayCheckTransactionData::new(
-        Asset::Fungible(fungible_asset),
+        asset,
         player_account_id,
         game_account_id,
     );
@@ -211,19 +185,10 @@ pub async fn fold(
     )
     .await;
 
-    let (faucet_account, _) = client
-        .new_account(AccountTemplate::FungibleFaucet {
-            token_symbol: TokenSymbol::new("MATIC").unwrap(),
-            decimals: 8,
-            max_supply: 1_000_000_000,
-            storage_mode: AccountStorageMode::Local,
-        })
-        .unwrap();
-    let fungible_asset =
-        FungibleAsset::new(faucet_account.id(), SMALL_BUY_IN_AMOUNT as u64).unwrap();
+    let asset = get_note_asset();
 
     let playfold_txn_data = PlayFoldTransactionData::new(
-        Asset::Fungible(fungible_asset),
+        asset,
         player_account_id,
         game_account_id,
     );
@@ -266,19 +231,10 @@ pub async fn bet(
     )
     .await;
 
-    let (faucet_account, _) = client
-        .new_account(AccountTemplate::FungibleFaucet {
-            token_symbol: TokenSymbol::new("MATIC").unwrap(),
-            decimals: 8,
-            max_supply: 1_000_000_000,
-            storage_mode: AccountStorageMode::Local,
-        })
-        .unwrap();
-    let fungible_asset =
-        FungibleAsset::new(faucet_account.id(), SMALL_BUY_IN_AMOUNT as u64).unwrap();
+    let asset = get_note_asset();
 
     let playbet_txn_data = PlayBetTransactionData::new(
-        Asset::Fungible(fungible_asset),
+        asset,
         player_account_id,
         game_account_id,
         amount,
