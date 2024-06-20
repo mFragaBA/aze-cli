@@ -1,13 +1,17 @@
 mod accounts;
 mod action;
 mod actions;
-mod init;
+mod connect;
 mod consume_notes;
+mod init;
 mod peek_hand;
 mod register;
-mod connect;
+mod see_hands;
 mod stats;
-use self::{ action::ActionCmd, init::InitCmd, consume_notes::ConsumeNotesCmd, register::RegisterCmd, connect::ConnectCmd, stats::StatsCmd, peek_hand::PeekHandCmd };
+use self::{
+    action::ActionCmd, connect::ConnectCmd, consume_notes::ConsumeNotesCmd, init::InitCmd,
+    peek_hand::PeekHandCmd, register::RegisterCmd, see_hands::SeeHandsCmd, stats::StatsCmd,
+};
 use clap::Parser;
 
 #[derive(Parser)]
@@ -25,7 +29,8 @@ enum Commands {
     PeekHand(PeekHandCmd),
     Register(RegisterCmd),
     Connect(ConnectCmd),
-    Stats(StatsCmd)
+    Stats(StatsCmd),
+    SeeHands(SeeHandsCmd),
 }
 
 #[tokio::main]
@@ -65,6 +70,11 @@ async fn main() {
         }
         Commands::Stats(stats_cmd) => {
             if let Err(error) = stats_cmd.execute(&ws_config_path).await {
+                println!("{}", error);
+            }
+        }
+        Commands::SeeHands(see_hands_cmd) => {
+            if let Err(error) = see_hands_cmd.execute(&ws_config_path).await {
                 println!("{}", error);
             }
         }

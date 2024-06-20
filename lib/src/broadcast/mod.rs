@@ -36,6 +36,8 @@ struct StatResponse {
     pub player_balances: Vec<u64>,
     pub current_player: u64,
     pub pot_value: u64,
+    pub player_hands: Vec<u64>,
+    pub current_state: u64
 }
 
 #[derive(Deserialize, Serialize)]
@@ -258,18 +260,23 @@ async fn stat_handler(body: StatRequest) -> Result<impl warp::Reply, warp::Rejec
         .get_item(CURRENT_TURN_PLAYER_SLOT)
         .as_elements()[0]
         .as_int();
-    let POT_VALUE: u8 = 60;
+    let POT_VALUE: u8 = 73;
     let COMMUNITY_CARDS: u8 = 76;
     let P1_BALANCE: u8 = 68;
     let NUM_PLAYERS: u8 = 57;
+    let P1_HANDS:u8 = 75;
+    let GAME_STATE: u8 = 62;
 
     let pot_value = game_account.storage().get_item(POT_VALUE).as_elements()[0].as_int();
-
     let mut player_balances: Vec<u64> = vec![];
+    let mut player_hands: Vec<u64> = vec![];
     let num_players = game_account.storage().get_item(NUM_PLAYERS).as_elements()[0].as_int();
     for i in 0..num_players {
-        let SLOT_VALUE = P1_BALANCE + (i * 13) as u8;
-        player_balances.push(game_account.storage().get_item(SLOT_VALUE).as_elements()[0].as_int());
+        let BALANCE_SLOT: u8 = P1_BALANCE + (i * 13) as u8;
+        let HANDS_SLOT: u8 =  P1_HANDS + (i * 13) as u8;
+        player_balances.push(game_account.storage().get_item(BALANCE_SLOT).as_elements()[0].as_int());
+        // Hand Slot storage structure: [player card 1 index, player card 2 index, hand type, 0]
+        player_hands.push(game_account.storage().get_item(HANDS_SLOT).as_elements()[2].as_int());
     }
     let community_cards = game_account
         .storage()
@@ -283,12 +290,15 @@ async fn stat_handler(body: StatRequest) -> Result<impl warp::Reply, warp::Rejec
         .get_item(CURRENT_TURN_PLAYER_ID as u8)
         .as_elements()[0]
         .as_int();
+    let current_state = game_account.storage().get_item(GAME_STATE).as_elements()[0].as_int();
 
     Ok(warp::reply::json(&StatResponse {
         community_cards: community_cards_int,
         player_balances,
         current_player,
         pot_value,
+        player_hands,
+        current_state
     }))
 }
 

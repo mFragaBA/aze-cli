@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use ansi_term::Colour::{Blue, Green, Red, Yellow};
 use aze_lib::{client::{create_aze_client, AzeClient}, utils::{get_stats, Ws_config}};
 use clap::Parser;
-use dialoguer::Input;
+    use dialoguer::Input;
 use miden_objects::accounts::AccountId;
 
 #[derive(Parser, Debug, Clone)]
@@ -23,7 +23,7 @@ impl StatsCmd {
         let ws_url = Ws_config::load(ws_config).url.unwrap();
         let stat_data: aze_lib::utils::StatResponse = get_stats(game_account_id.to_string(), ws_url).await?;
         
-
+        // TODO: Community Card Dynamic
         let poker_table = format!(
             "{}\n\
              {}\n\
