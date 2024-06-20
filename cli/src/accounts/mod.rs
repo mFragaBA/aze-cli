@@ -77,18 +77,19 @@ pub async fn create_aze_game_account(
 
     let game_account_id = game_account.id();
 
-    let note = mint_note(
-        &mut client,
-        game_account_id,
-        faucet_account_id,
-        NoteType::Public,
-    )
-    .await;
-    consume_notes(&mut client, game_account_id, &[note]).await;
+    // let note = mint_note(
+    //     &mut client,
+    //     game_account_id,
+    //     faucet_account_id,
+    //     NoteType::Public,
+    // )
+    // .await;
+    // consume_notes(&mut client, game_account_id, &[note]).await;
 
     // Send note for shuffling and encryption
     let sender_account_id = game_account_id;
-    let target_account_id = AccountId::try_from(player_account_ids[0]).unwrap();
+    let target_account_id = create_aze_player_account("rndm".to_string()).await.unwrap();
+    // let target_account_id = AccountId::try_from(player_account_ids[0]).unwrap();
     let shuffle_card_data = ShuffleCardTransactionData::new(   
         Asset::Fungible(fungible_asset),
         sender_account_id,
@@ -101,6 +102,9 @@ pub async fn create_aze_game_account(
         .build_aze_shuffle_card_tx_request(transaction_template)
         .unwrap();
     execute_tx_and_sync(&mut client, txn_request.clone()).await;
+    let note_id = txn_request.expected_output_notes()[0].id();
+    let note = client.get_input_note(note_id).unwrap();
+    consume_notes(&mut client, target_account_id, &[note.try_into().unwrap()]).await;
     
     Ok(game_account_id)
 }

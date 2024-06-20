@@ -828,14 +828,35 @@ impl<N: NodeRpcClient, R: FeltRng, S: Store, A: TransactionAuthenticator> AzeGam
         let note_tag = created_note.metadata().tag().inner();
         let note_type = NoteType::Public;
 
-        let tx_script = ProgramAst::parse(
-            &transaction_request::AUTH_SEND_ASSET_SCRIPT
-                .replace("{recipient}", &recipient)
-                .replace("{note_type}", &Felt::new(note_type as u64).to_string())
-                .replace("{tag}", &Felt::new(note_tag.into()).to_string())
-                .replace("{asset}", &prepare_word(&asset.into()).to_string()),
-        )
-        .expect("shipped MASM is well-formed");
+        // let tx_script = ProgramAst::parse(
+        //     &transaction_request::AUTH_SEND_ASSET_SCRIPT
+        //         .replace("{recipient}", &recipient)
+        //         .replace("{note_type}", &Felt::new(note_type as u64).to_string())
+        //         .replace("{tag}", &Felt::new(note_tag.into()).to_string())
+        //         .replace("{asset}", &prepare_word(&asset.into()).to_string()),
+        // )
+        // .expect("shipped MASM is well-formed");
+
+        let tx_script = format!(
+            "\
+                use.miden::account
+                use.miden::contracts::auth::basic->auth_tx
+                use.miden::contracts::wallets::basic->wallet
+                use.miden::tx
+                begin
+                    push.{recipient}
+                    push.{note_type}
+                    push.{tag}
+                    call.tx::create_note
+                    dropw dropw
+                    # => []
+                end
+            ",  
+            recipient = recipient,
+            note_type = note_type as u8,
+            tag = Felt::new(note_tag.into()).to_string()
+        );
+        let tx_script = ProgramAst::parse(&tx_script).unwrap();
     
         let (pubkey_input, advice_map): (Word, Vec<Felt>) = match account_auth {
             AuthSecretKey::RpoFalcon512(key) => (
