@@ -163,6 +163,7 @@ pub struct SetHandTransactionData {
     sender_account_id: AccountId,
     target_account_id: AccountId,
     cards: [[Felt; 4]; 2],
+    player_hand: u8,
     player_index: u8
 }
 
@@ -410,6 +411,7 @@ impl SetHandTransactionData {
         sender_account_id: AccountId,
         target_account_id: AccountId,
         cards: &[[Felt; 4]; 2],
+        player_hand: u8,
         player_index: u8
     ) -> Self {
         Self {
@@ -417,6 +419,7 @@ impl SetHandTransactionData {
             sender_account_id,
             target_account_id,
             cards: *cards,
+            player_hand,
             player_index
         }
     }
@@ -1742,14 +1745,15 @@ impl<N: NodeRpcClient, R: FeltRng, S: Store, A: TransactionAuthenticator> AzeGam
         let account_id = transaction_template.account_id();
         let account_auth = self.store().get_account_auth(account_id)?;
 
-        let (sender_account_id, target_account_id, asset, cards, player_index) = match transaction_template {
+        let (sender_account_id, target_account_id, asset, cards, player_hand, player_index) = match transaction_template {
             AzeTransactionTemplate::SetHand(SetHandTransactionData {
                 asset,
                 sender_account_id,
                 target_account_id,
                 cards,
+                player_hand,
                 player_index,
-            }) => (sender_account_id, target_account_id, asset, cards, player_index),
+            }) => (sender_account_id, target_account_id, asset, cards, player_hand, player_index),
             _ => panic!("Invalid transaction template"),
         };
 
@@ -1763,6 +1767,7 @@ impl<N: NodeRpcClient, R: FeltRng, S: Store, A: TransactionAuthenticator> AzeGam
             NoteType::Public,
             random_coin,
             cards,
+            player_hand,
             player_index,
         )?;
 

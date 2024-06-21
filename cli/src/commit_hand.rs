@@ -5,6 +5,7 @@ use miden_objects::{
     accounts::AccountId,
     Felt, FieldElement
 };
+use dialoguer::{Input, Select};
 
 #[derive(Debug, Clone, Parser)]
 pub struct CommitHandCmd {
@@ -19,8 +20,23 @@ impl CommitHandCmd {
     pub async fn execute(&self) -> Result<(), String> {
         let sender_account_id = AccountId::try_from(self.player_id).unwrap();
         let game_account_id = AccountId::try_from(self.game_id).unwrap();
+
+        let player_hand = Select::new()
+            .with_prompt("What is your hand?")
+            .item("Royal Flush")
+            .item("Straight Flush")
+            .item("Four of a Kind")
+            .item("Full House")
+            .item("Flush")
+            .item("Straight")
+            .item("Three of a Kind")
+            .item("Two Pair")
+            .item("One Pair")
+            .item("High Card")
+            .interact()
+            .expect("Failed to get action type");
         
-        commit_hand(sender_account_id, game_account_id).await;
+        commit_hand(sender_account_id, game_account_id, player_hand as u8 + 1).await;
 
         Ok(())
     }

@@ -7,10 +7,10 @@ const.FIRST_PLAYER_INDEX=64
 const.HAND_OFFSET=11
 const.PLAYER_STATS_SLOTS=13
 
-proc.set_cards
-    # => [card_index, Cb, Ca]
-    push.0 dup movup.2
-    # => [card_index, 0, 0, Cb, Ca]
+proc.set_hand
+    # => [index, hand, card2, card1]
+    push.0 swap
+    # => [index, 0, hand, card2, card1]
     exec.account::set_item
     dropw dropw
 end
@@ -22,15 +22,15 @@ begin
     # => [des_pointer]
 
     # card_index
-    mem_loadw drop
-    # => [player_index, Card2, Card1]
+    mem_loadw
+    # => [player_index, player_hand, Card2, Card1]
     # Calculate current_player_index = 64 + 13 * player_index + 0
     push.PLAYER_STATS_SLOTS mul
     push.FIRST_PLAYER_INDEX add
     push.HAND_OFFSET add
-    # => [current_player_hand_index, Card2, Card1]
+    # => [current_player_hand_index, player_hand, Card2, Card1]
     
-    call.set_cards
+    call.set_hand
     # => [...]
 
     exec.note::get_assets drop mem_loadw

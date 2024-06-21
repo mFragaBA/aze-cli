@@ -328,7 +328,7 @@ pub async fn send_unmasked_cards(account_id: AccountId, requester_id: AccountId)
     execute_tx_and_sync(&mut client, txn_request.clone()).await;
 }
 
-pub async fn commit_hand(account_id: AccountId, game_account_id: AccountId) {
+pub async fn commit_hand(account_id: AccountId, game_account_id: AccountId, player_hand: u8) {
     let mut client: AzeClient = create_aze_client();
     let (player_account, _) = client.get_account(account_id).unwrap();
 
@@ -354,6 +354,7 @@ pub async fn commit_hand(account_id: AccountId, game_account_id: AccountId) {
         account_id,
         game_account_id,
         &cards,
+        player_hand,
         player_index
     );
     let transaction_template = AzeTransactionTemplate::SetHand(commit_hand_data);

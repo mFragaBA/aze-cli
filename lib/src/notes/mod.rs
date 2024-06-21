@@ -496,13 +496,14 @@ pub fn create_set_hand_note<
     note_type: NoteType,
     mut rng: RpoRandomCoin,
     cards: [[Felt; 4]; 2],
+    player_hand: u8,
     player_index: u8,
 ) -> Result<Note, NoteError> {
     let note_script = include_str!("../../contracts/notes/game/set_hand.masm");
     let script_ast = ProgramAst::parse(note_script).unwrap();
     let note_script = client.compile_note_script(script_ast, vec![]).unwrap();
 
-    let inputs = vec![cards[0][0], cards[1][0], Felt::from(player_index)];
+    let inputs = vec![cards[0][0], cards[1][0], Felt::from(player_hand), Felt::from(player_index)];
 
     let note_inputs = NoteInputs::new(inputs).unwrap();
     let tag = NoteTag::from_account_id(target_account_id, NoteExecutionHint::Local)?;
