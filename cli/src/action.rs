@@ -1,19 +1,13 @@
 use crate::actions;
-use aze_lib::constants::{BUY_IN_AMOUNT, NO_OF_PLAYERS, SMALL_BLIND_AMOUNT};
-use aze_types::actions::GameActionResponse;
+use aze_lib::gamestate::Check_Action;
+use aze_lib::utils::Ws_config;
+use aze_lib::{
+    constants::{BUY_IN_AMOUNT, NO_OF_PLAYERS, SMALL_BLIND_AMOUNT},
+    utils::validate_action,
+};
+use aze_types::actions::{ActionType, GameActionResponse};
 use clap::{Parser, ValueEnum};
 use dialoguer::{Input, Select};
-
-#[derive(ValueEnum, Debug, PartialEq, Clone)]
-enum ActionType {
-    Raise,
-    SmallBlind,
-    BigBlind,
-    Call,
-    Check,
-    Fold,
-}
-
 #[derive(Debug, Clone, Parser)]
 pub struct ActionCmd {}
 
@@ -84,6 +78,20 @@ async fn send_action(
     amount: Option<u8>,
     ws_config_path: &std::path::PathBuf
 ) -> Result<GameActionResponse, String> {
+    let amount_u64 = amount.map(|value| value as u64);
+    let ws_url = Ws_config::load(ws_config_path).url.unwrap();
+    let result = validate_action(
+        Check_Action {
+            action_type,
+            amount: amount_u64,
+        },
+        ws_url,
+        player_id,
+    )
+    .await.unwrap();
+    if result == false {
+        return Err("Invalid Action".to_string());
+    }
     match action_type {
         ActionType::Raise => actions::raise(player_id, game_id, amount, ws_config_path).await,
         ActionType::SmallBlind => actions::small_blind(player_id, game_id, ws_config_path).await,

@@ -1,3 +1,4 @@
+use aze_types::actions::ActionType;
 use futures_util::{SinkExt, StreamExt};
 use get_if_addrs::get_if_addrs;
 use log::{error, info};
@@ -6,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::net::IpAddr;
 use std::path::PathBuf;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use tokio::sync::{broadcast, RwLock};
 use tokio_tungstenite::tungstenite::protocol::Message as TungsteniteMessage;
 use warp::hyper::StatusCode;
@@ -14,8 +15,8 @@ use warp::ws::Ws;
 use warp::Filter;
 
 use crate::client::{create_aze_client, AzeClient};
+use crate::gamestate::{Check_Action, PokerGame};
 use crate::utils::Ws_config;
-
 type Peers = Arc<RwLock<HashMap<String, broadcast::Sender<TungsteniteMessage>>>>;
 
 #[derive(Deserialize)]
@@ -37,8 +38,19 @@ struct StatResponse {
     pub pot_value: u64,
 }
 
-pub fn start_wss(game_id: String, ws_config_path: &PathBuf) -> Option<String> {
-    // Use localhost IP for debugging
+#[derive(Deserialize, Serialize)]
+pub struct CheckmoveRequest {
+    pub player_id: u64,
+    pub action: Check_Action,
+}
+
+pub fn initialise_server(
+    game_id: String,
+    ws_config_path: &PathBuf,
+    buy_in_amount: u64,
+    small_blind_amount: u8,
+    player_ids: Vec<u64>,
+) -> Option<String> {
     let ip: [u8; 4] = get_ipv4_bytes().unwrap();
     let port = 12044;
     let ws_url = format!(
@@ -68,9 +80,16 @@ pub fn start_wss(game_id: String, ws_config_path: &PathBuf) -> Option<String> {
             .and(warp::body::json())
             .and_then(stat_handler);
 
+        let checkmove_route = warp::path("checkmove")
+            .and(warp::post())
+            .and(warp::body::json())
+            .and(with_game())
+            .and_then(checkmove_handler);
+
         let routes = ws_route
             .or(publish_route)
             .or(stats_route)
+            .or(checkmove_route)
             .with(warp::log("broadcast_server"));
 
         info!(
@@ -85,8 +104,70 @@ pub fn start_wss(game_id: String, ws_config_path: &PathBuf) -> Option<String> {
     let mut ws_config = Ws_config::load(ws_config_path);
     ws_config.url = Some(ws_url.to_string());
     ws_config.save(ws_config_path);
+
+    // initialise local game state
+    let game = Arc::new(Mutex::new(PokerGame::new(
+        player_ids,
+        vec![buy_in_amount; 4],
+        small_blind_amount as u64,
+        (small_blind_amount * 2) as u64,
+    )));
+
+    set_game(game.clone());
     Some(ws_url)
 }
+
+// Utility Functions
+
+fn convert_warp_message_to_tungstenite(msg: warp::ws::Message) -> TungsteniteMessage {
+    if msg.is_text() {
+        TungsteniteMessage::Text(msg.to_str().unwrap().to_string())
+    } else if msg.is_binary() {
+        TungsteniteMessage::Binary(msg.as_bytes().to_vec())
+    } else {
+        TungsteniteMessage::Ping(vec![])
+    }
+}
+
+fn convert_tungstenite_message_to_warp(msg: TungsteniteMessage) -> warp::ws::Message {
+    match msg {
+        TungsteniteMessage::Text(text) => warp::ws::Message::text(text),
+        TungsteniteMessage::Binary(bin) => warp::ws::Message::binary(bin),
+        TungsteniteMessage::Ping(ping) => warp::ws::Message::ping(ping),
+        TungsteniteMessage::Pong(pong) => warp::ws::Message::pong(pong),
+        TungsteniteMessage::Close(_) => warp::ws::Message::close(),
+        _ => warp::ws::Message::binary(vec![]),
+    }
+}
+
+fn get_ipv4_bytes() -> Option<[u8; 4]> {
+    let interfaces = get_if_addrs().ok()?;
+
+    for iface in interfaces {
+        if !iface.is_loopback() {
+            if let IpAddr::V4(ipv4) = iface.addr.ip() {
+                return Some(ipv4.octets());
+            }
+        }
+    }
+    None
+}
+
+// Local Poker game
+static mut GAME: Option<Arc<Mutex<PokerGame>>> = None;
+
+pub fn set_game(game: Arc<Mutex<PokerGame>>) {
+    unsafe {
+        GAME = Some(game);
+    }
+}
+
+fn with_game(
+) -> impl Filter<Extract = (Arc<Mutex<PokerGame>>,), Error = std::convert::Infallible> + Clone {
+    warp::any().map(move || unsafe { GAME.clone().unwrap() })
+}
+
+// Handlers
 
 async fn ws_handler(
     game_id: String,
@@ -193,7 +274,8 @@ async fn stat_handler(body: StatRequest) -> Result<impl warp::Reply, warp::Rejec
     let community_cards = game_account
         .storage()
         .get_item(COMMUNITY_CARDS)
-        .as_elements().to_vec();
+        .as_elements()
+        .to_vec();
     let community_cards_int: Vec<u64> = community_cards.iter().map(|n| n.as_int()).collect();
 
     let current_player = game_account
@@ -202,39 +284,19 @@ async fn stat_handler(body: StatRequest) -> Result<impl warp::Reply, warp::Rejec
         .as_elements()[0]
         .as_int();
 
-    Ok(warp::reply::json(&StatResponse{community_cards: community_cards_int, player_balances, current_player, pot_value}))
+    Ok(warp::reply::json(&StatResponse {
+        community_cards: community_cards_int,
+        player_balances,
+        current_player,
+        pot_value,
+    }))
 }
 
-fn convert_warp_message_to_tungstenite(msg: warp::ws::Message) -> TungsteniteMessage {
-    if msg.is_text() {
-        TungsteniteMessage::Text(msg.to_str().unwrap().to_string())
-    } else if msg.is_binary() {
-        TungsteniteMessage::Binary(msg.as_bytes().to_vec())
-    } else {
-        TungsteniteMessage::Ping(vec![])
-    }
-}
-
-fn convert_tungstenite_message_to_warp(msg: TungsteniteMessage) -> warp::ws::Message {
-    match msg {
-        TungsteniteMessage::Text(text) => warp::ws::Message::text(text),
-        TungsteniteMessage::Binary(bin) => warp::ws::Message::binary(bin),
-        TungsteniteMessage::Ping(ping) => warp::ws::Message::ping(ping),
-        TungsteniteMessage::Pong(pong) => warp::ws::Message::pong(pong),
-        TungsteniteMessage::Close(_) => warp::ws::Message::close(),
-        _ => warp::ws::Message::binary(vec![]),
-    }
-}
-
-fn get_ipv4_bytes() -> Option<[u8; 4]> {
-    let interfaces = get_if_addrs().ok()?;
-
-    for iface in interfaces {
-        if !iface.is_loopback() {
-            if let IpAddr::V4(ipv4) = iface.addr.ip() {
-                return Some(ipv4.octets());
-            }
-        }
-    }
-    None
+pub async fn checkmove_handler(
+    body: CheckmoveRequest,
+    local_game: Arc<Mutex<PokerGame>>,
+) -> Result<impl warp::Reply, warp::Rejection> {
+    let mut game = local_game.lock().unwrap();
+    let result = game.check_move(body.action, body.player_id);
+    Ok(warp::reply::json(&[result]))
 }
