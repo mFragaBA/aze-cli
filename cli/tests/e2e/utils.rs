@@ -12,6 +12,7 @@ use aze_lib::client::{
     UnmaskTransactionData,
     SetCardsTransactionData,
     SetHandTransactionData,
+    SendCommunityCardsTransactionData,
 };
 use aze_lib::accounts::create_basic_aze_player_account;
 use aze_lib::constants::{
@@ -30,6 +31,7 @@ use aze_lib::constants::{
     REQUESTER_SLOT,
     CURRENT_PHASE_SLOT,
     FLOP_SLOT,
+    PHASE_DATA_SLOT,
 };
 use aze_lib::executor::execute_tx_and_sync;
 use aze_lib::utils::{ get_random_coin, load_config };
@@ -249,16 +251,17 @@ pub async fn unmask_community_cards(client: &mut AzeClient, faucet_account_id:Ac
         cards[i] = card_digest.into();
     }
 
-    // set community cards to player account
-    let set_cards_data = SendUnmaskedCardsTransactionData::new(   
+    // send community cards to player account
+    let send_cards_data = SendCommunityCardsTransactionData::new(   
         Asset::Fungible(fungible_asset),
         game_account_id,
         player_account_id,
         &cards,
+        current_phase as u8,
     );
-    let transaction_template = AzeTransactionTemplate::SendUnmaskedCards(set_cards_data);
+    let transaction_template = AzeTransactionTemplate::SendCommunityCards(send_cards_data);
     let txn_request = client
-        .build_aze_send_unmasked_cards_tx_request(transaction_template)
+        .build_send_community_cards_tx_request(transaction_template)
         .unwrap();
     execute_tx_and_sync(client, txn_request.clone()).await;
     let note_id = txn_request.expected_output_notes()[0].id();
@@ -270,6 +273,8 @@ pub async fn unmask_community_cards(client: &mut AzeClient, faucet_account_id:Ac
         let card: [Felt; 4] = player_account.storage().get_item(slot).into();
         assert_eq!(cards[i], card);
     }
+    let phase_data = player_account.storage().get_item(PHASE_DATA_SLOT);
+    assert_eq!(phase_data, RpoDigest::new([Felt::from(current_phase), Felt::ZERO, Felt::ZERO, Felt::ZERO]));
 
     // unmask community cards
     p2p_unmask_flow(client, faucet_account_id, player_account_id, [TEMP_CARD_SLOT, TEMP_CARD_SLOT + 2]).await;

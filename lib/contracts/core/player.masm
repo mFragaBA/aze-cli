@@ -7,6 +7,7 @@ const.SECRET_KEY_SLOT=53
 const.PUBLIC_KEY_SLOT=54
 const.MASKING_FACTOR_SLOT=55
 const.PLAYER_DATA_SLOT=56
+const.PHASE_DATA_SLOT=57
 const.REQUESTER_INFO_SLOT=102
 const.TOTAL_CARDS=52
 const.SUIT_SIZE=13
@@ -216,12 +217,18 @@ export.inter_unmask
     dropw dropw
 end
 
-proc.set_cards
+export.set_cards
     # => [card_index, Cb, Ca]
     push.0 dup movup.2
     # => [card_index, 0, 0, Cb, Ca]
     exec.account::set_item
     dropw dropw
+end
+
+export.set_phase
+    # => [0, 0, 0, current_phase]
+    push.PHASE_DATA_SLOT exec.account::set_item
+    dropw dropw 
 end
 
 export.basic_wallet::receive_asset

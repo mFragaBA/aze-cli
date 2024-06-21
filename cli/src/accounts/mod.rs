@@ -12,6 +12,7 @@ use aze_lib::client::{
     InterUnmaskTransactionData,
     SendUnmaskedCardsTransactionData,
     SetHandTransactionData,
+    SendCommunityCardsTransactionData,
 };
 use aze_lib::constants::{
     FIRST_PLAYER_INDEX, HIGHEST_BET, NO_OF_PLAYERS, PLAYER_INITIAL_BALANCE, SMALL_BUY_IN_AMOUNT,
@@ -297,6 +298,26 @@ pub async fn set_community_cards(account_id: AccountId, receiver_account_id: Acc
     let transaction_template = AzeTransactionTemplate::Unmask(set_cards_data);
     let txn_request = client
         .build_aze_set_community_cards_tx_request(transaction_template)
+        .unwrap();
+    execute_tx_and_sync(&mut client, txn_request.clone()).await;
+}
+
+pub async fn send_community_cards(account_id: AccountId, receiver_account_id: AccountId, cards: [[Felt; 4]; 3], phase: u8) {
+    let mut client: AzeClient = create_aze_client();
+    let (player_account, _) = client.get_account(account_id).unwrap();
+
+    // send set cards note to game account
+    let asset = get_note_asset();
+    let send_cards_data = SendCommunityCardsTransactionData::new(   
+        asset,
+        account_id,
+        receiver_account_id,
+        &cards,
+        phase
+    );
+    let transaction_template = AzeTransactionTemplate::SendCommunityCards(send_cards_data);
+    let txn_request = client
+        .build_send_community_cards_tx_request(transaction_template)
         .unwrap();
     execute_tx_and_sync(&mut client, txn_request.clone()).await;
 }

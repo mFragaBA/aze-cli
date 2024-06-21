@@ -1,4 +1,4 @@
-use crate::accounts::{ create_aze_game_account, consume_game_notes };
+use crate::accounts::{ create_aze_game_account, consume_game_notes, send_community_cards };
 use aze_lib::client::{ create_aze_client, AzeClient };
 use aze_lib::constants::{BUY_IN_AMOUNT, NO_OF_PLAYERS, SMALL_BLIND_AMOUNT, CURRENT_PHASE_SLOT};
 use aze_lib::broadcast::start_wss;
@@ -120,13 +120,13 @@ impl InitCmd {
 
                         // if phase changes, send community cards for unmasking
                         let player_account_id = AccountId::try_from(player_ids[0]).unwrap();
-                        let mut cards: [[Felt; 4]; 52] = [[Felt::ZERO; 4]; 52];
+                        let mut cards: [[Felt; 4]; 3] = [[Felt::ZERO; 4]; 3];
                         for (i, slot) in (1..4).enumerate() {
                             let card_digest = game_account.storage().get_item(slot);
                             cards[i] = card_digest.into();
                         }
                         // send community cards
-                        // send_community_cards(game_account_id, player_account_id, cards, phase).await;
+                        send_community_cards(game_account_id, player_account_id, cards, phase as u8).await;
                         sleep(Duration::from_secs(5)).await;
                     }
                 }).await;
