@@ -19,6 +19,7 @@ pub const FLOP_NO_OF_CARDS: u8 = 3;
 pub const FLOP_INDEX: u8 = NO_OF_PLAYERS * 2 + 1;
 pub const PLAYER_BET_OFFSET: u8 = 3;
 pub const IS_FOLD_OFFSET: u8 = 10;
+pub const HAND_OFFSET: u8 = 11;
 pub const PLAYER_STATS_SLOTS: u8 = 13;
 pub const FIRST_PLAYER_INDEX: u8 = 64;
 pub const LAST_PLAYER_INDEX: u8 = FIRST_PLAYER_INDEX + (NO_OF_PLAYERS - 1) * PLAYER_STATS_SLOTS;

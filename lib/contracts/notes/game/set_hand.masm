@@ -22,16 +22,12 @@ begin
     # => [des_pointer]
 
     # card_index
-    dup add.1 mem_load
-    # => [player_index, des_pointer]
+    mem_loadw drop
+    # => [player_index, Card2, Card1]
     # Calculate current_player_index = 64 + 13 * player_index + 0
-    mul.PLAYER_STATS_SLOTS add.FIRST_PLAYER_INDEX
-    add.HAND_OFFSET
-    # => [current_player_hand_index, des_pointer]
-
-    swap mem_loadw drop drop
-    # => [Card2, Card1, current_player_hand_index]
-    movup.2
+    push.PLAYER_STATS_SLOTS mul
+    push.FIRST_PLAYER_INDEX add
+    push.HAND_OFFSET add
     # => [current_player_hand_index, Card2, Card1]
     
     call.set_cards

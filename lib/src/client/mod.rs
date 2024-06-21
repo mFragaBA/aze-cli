@@ -157,6 +157,15 @@ pub struct InterUnmaskTransactionData {
     requester_id: AccountId,
 }
 
+#[derive(Clone)]
+pub struct SetHandTransactionData {
+    asset: Asset,
+    sender_account_id: AccountId,
+    target_account_id: AccountId,
+    cards: [[Felt; 4]; 2],
+    player_index: u8
+}
+
 impl GenPrivateKeyTransactionData {
     pub fn account_id(&self) -> AccountId {
         self.sender_account_id
@@ -388,6 +397,27 @@ impl InterUnmaskTransactionData {
             target_account_id,
             cards: *cards,
             requester_id,
+        }
+    }
+}
+
+impl SetHandTransactionData {
+    pub fn account_id(&self) -> AccountId {
+        self.sender_account_id
+    }
+    pub fn new(
+        asset: Asset,
+        sender_account_id: AccountId,
+        target_account_id: AccountId,
+        cards: &[[Felt; 4]; 2],
+        player_index: u8
+    ) -> Self {
+        Self {
+            asset,
+            sender_account_id,
+            target_account_id,
+            cards: *cards,
+            player_index
         }
     }
 }
@@ -1712,13 +1742,14 @@ impl<N: NodeRpcClient, R: FeltRng, S: Store, A: TransactionAuthenticator> AzeGam
         let account_id = transaction_template.account_id();
         let account_auth = self.store().get_account_auth(account_id)?;
 
-        let (sender_account_id, target_account_id, asset, cards) = match transaction_template {
-            AzeTransactionTemplate::SendCard(SendCardTransactionData {
+        let (sender_account_id, target_account_id, asset, cards, player_index) = match transaction_template {
+            AzeTransactionTemplate::SetHand(SetHandTransactionData {
                 asset,
                 sender_account_id,
                 target_account_id,
                 cards,
-            }) => (sender_account_id, target_account_id, asset, cards),
+                player_index,
+            }) => (sender_account_id, target_account_id, asset, cards, player_index),
             _ => panic!("Invalid transaction template"),
         };
 
@@ -1732,6 +1763,7 @@ impl<N: NodeRpcClient, R: FeltRng, S: Store, A: TransactionAuthenticator> AzeGam
             NoteType::Public,
             random_coin,
             cards,
+            player_index,
         )?;
 
         let recipient = created_note
@@ -1816,6 +1848,7 @@ pub enum AzeTransactionTemplate {
     Unmask(UnmaskTransactionData),
     InterUnmask(InterUnmaskTransactionData),
     SendUnmaskedCards(SendUnmaskedCardsTransactionData),
+    SetHand(SetHandTransactionData),
 }
 
 impl AzeTransactionTemplate {
@@ -1835,6 +1868,7 @@ impl AzeTransactionTemplate {
             AzeTransactionTemplate::Unmask(p) => p.account_id(),
             AzeTransactionTemplate::InterUnmask(p) => p.account_id(),
             AzeTransactionTemplate::SendUnmaskedCards(p) => p.account_id(),
+            AzeTransactionTemplate::SetHand(p) => p.account_id(),
         }
     }
 }

@@ -8,6 +8,7 @@ use utils::{
     remask_cards,
     peek_hand,
     unmask_community_cards,
+    commit_hand,
 };
 use aze_lib::client::{
     AzeClient,
@@ -24,6 +25,8 @@ use aze_lib::constants::{
     PLAYER_CARD2_SLOT,
     REQUESTER_SLOT,
     TEMP_CARD_SLOT,
+    FIRST_PLAYER_INDEX,
+    HAND_OFFSET,
 };
 use miden_client::{
     client::accounts::{ AccountTemplate, AccountStorageMode },
@@ -85,4 +88,8 @@ async fn test_e2e() {
     unmask_community_cards(&mut client, faucet_account_id, game_account_id, player1_id).await;
 
     // Commit hand
+    commit_hand(&mut client, faucet_account_id, game_account_id, player1_id, 0_u8).await;
+    let (game_account, _) = client.get_account(game_account_id).unwrap();
+    let commited_cards = game_account.storage().get_item(FIRST_PLAYER_INDEX + HAND_OFFSET);
+    assert_eq!(commited_cards, RpoDigest::new([Felt::from(17_u8), Felt::from(18_u8), Felt::ZERO, Felt::ZERO])); 
 }

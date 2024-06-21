@@ -11,6 +11,7 @@ use aze_lib::client::{
     UnmaskTransactionData,
     InterUnmaskTransactionData,
     SendUnmaskedCardsTransactionData,
+    SetHandTransactionData,
 };
 use aze_lib::constants::{
     FIRST_PLAYER_INDEX, HIGHEST_BET, NO_OF_PLAYERS, PLAYER_INITIAL_BALANCE, SMALL_BUY_IN_AMOUNT,
@@ -340,13 +341,22 @@ pub async fn commit_hand(account_id: AccountId, game_account_id: AccountId) {
         cards[i] = card.into();
     }
 
-    let commit_hand_data = SendCardTransactionData::new(   
+    let player_data = player_account.storage().get_item(PLAYER_DATA_SLOT).as_elements().to_vec();
+    let action_type = player_data[0].as_int() as u8;
+    let player_index = if action_type % NO_OF_PLAYERS != 0 {
+        action_type % NO_OF_PLAYERS
+    } else {
+        NO_OF_PLAYERS
+    };
+
+    let commit_hand_data = SetHandTransactionData::new(   
         asset,
         account_id,
         game_account_id,
         &cards,
+        player_index
     );
-    let transaction_template = AzeTransactionTemplate::SendCard(commit_hand_data);
+    let transaction_template = AzeTransactionTemplate::SetHand(commit_hand_data);
     let txn_request = client
         .build_aze_set_hand_tx_request(transaction_template)
         .unwrap();
