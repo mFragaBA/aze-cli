@@ -1,8 +1,8 @@
 use crate::accounts::{ create_aze_game_account, consume_game_notes, send_community_cards };
 use aze_lib::client::{ create_aze_client, AzeClient };
 use aze_lib::constants::{BUY_IN_AMOUNT, NO_OF_PLAYERS, SMALL_BLIND_AMOUNT, CURRENT_PHASE_SLOT};
-use aze_lib::broadcast::start_wss;
 use aze_lib::utils::{ broadcast_message, Ws_config };
+use aze_lib::broadcast::initialise_server;
 use aze_types::accounts::AccountCreationError;
 use clap::{Parser, ValueEnum};
 use figment::{
@@ -65,20 +65,23 @@ impl InitCmd {
         match create_aze_game_account(player_ids.clone(), small_blind_amount, buy_in_amount).await {
             Ok(game_account_id) => {
                 println!("Game account created: {:?}", game_account_id);
-                // start wss server in new thread and stores url in ws_config.json for future use i.e sending messages
+                /*
+                    Start ws and http server on exposed port of user in background
+                    Setup local off chain game state 
+                */
                 let config_clone = ws_config.clone();
+                let player_ids_clone = player_ids.clone();
                 tokio::spawn(async move {
-                    match start_wss(game_account_id.to_string(), &config_clone){
+                    match initialise_server(game_account_id.to_string(), &config_clone, buy_in_amount.clone(), small_blind_amount.clone(), player_ids_clone) {
                         Some(ws_url) => {
-                            println!("Game server started at: {}",ws_url);
-                            Ok(ws_url)
+                            println!("Game server started at: {}", ws_url);
+                            Ok(())
                         }
                         None => {
                             return Err("Error starting ws server");
                         }
                     }
                 });
-
                 let mut client: AzeClient = create_aze_client();
                 let local_set = LocalSet::new();
                 local_set.run_until(async {
