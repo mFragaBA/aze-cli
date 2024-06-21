@@ -203,7 +203,8 @@ pub struct StatResponse {
     pub current_player: u64,
     pub pot_value: u64,
     pub player_hands: Vec<u64>,
-    pub current_state: u64
+    pub current_state: u64,
+    pub player_hand_cards: Vec<Vec<u64>>
 }
 
 // Config for saving broadcast url
@@ -320,4 +321,26 @@ pub fn read_player_data() -> Option<String> {
     file.read_to_string(&mut content).ok()?;
     let player_info: Player = Toml::from_str(&content).ok()?;
     Some(player_info.identifier)
+}
+
+
+pub fn card_from_number(num: u64) -> String {
+    if num == 0 {
+        return String::from("NA");
+    }
+
+    let suits = ["♣", "♦", "♥", "♠"];
+
+    let suit_index = (num - 1) / 13;
+    let suit = suits[suit_index as usize];
+
+    let rank = match (num - 1) % 13 + 1 {
+        1 => "A".to_string(),
+        11 => "J".to_string(),
+        12 => "Q".to_string(),
+        13 => "K".to_string(),
+        n => n.to_string(),
+    };
+
+    format!("{}{}", rank, suit)
 }

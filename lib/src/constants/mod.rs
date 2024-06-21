@@ -27,6 +27,9 @@ pub const HIGHEST_BET_SLOT: u8 = 61;
 pub const CURRENT_PHASE_SLOT: u8 = 62;
 pub const CHECK_COUNTER_SLOT: u8 = 63;
 pub const PLAYER_BALANCE_SLOT: u8 = 68;
+pub const PLAYER_HANDS: u8 = 75;
+pub const POT_VALUE: u8 = 73;
+pub const COMMUNITY_CARDS: [u8;5] = [116, 117, 118, 119, 120];
 
 // PLAYER ACCOUNT
 pub const SECRET_KEY_SLOT: u8 = 53;
