@@ -230,7 +230,7 @@ async fn handle_websocket(socket: warp::ws::WebSocket, game_id: String, peers: P
         }
     });
 
-    info!("WebSocket connection established for game_id: {}", game_id);
+    println!("WebSocket connection established for game_id: {}", game_id);
 }
 
 async fn publish_handler(
