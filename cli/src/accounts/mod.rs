@@ -1,3 +1,4 @@
+use crate::utils::{ get_faucet_id, get_note_asset };
 use aze_enc::{ keygen, mask, remask, inter_unmask, final_unmask, CardCipher };
 use aze_lib::accounts::create_basic_aze_player_account;
 use aze_lib::client::{
@@ -10,10 +11,12 @@ use aze_lib::client::{
     UnmaskTransactionData,
     InterUnmaskTransactionData,
     SendUnmaskedCardsTransactionData,
+    SetHandTransactionData,
+    SendCommunityCardsTransactionData,
 };
 use aze_lib::constants::{
     FIRST_PLAYER_INDEX, HIGHEST_BET, NO_OF_PLAYERS, PLAYER_INITIAL_BALANCE, SMALL_BUY_IN_AMOUNT,
-    PLAYER_DATA_SLOT, DEFAULT_ACTION_TYPE, PLAYER_CARD1_SLOT, TEMP_CARD_SLOT,
+    PLAYER_DATA_SLOT, DEFAULT_ACTION_TYPE, PLAYER_CARD1_SLOT, PLAYER_CARD2_SLOT, TEMP_CARD_SLOT,
 };
 use aze_lib::executor::execute_tx_and_sync;
 use aze_lib::notes::{consume_notes, mint_note};
@@ -53,17 +56,8 @@ pub async fn create_aze_game_account(
         PLAYER_INITIAL_BALANCE,
     );
 
-    let (faucet_account, _) = client
-        .new_account(AccountTemplate::FungibleFaucet {
-            token_symbol: TokenSymbol::new("MATIC").unwrap(),
-            decimals: 8,
-            max_supply: 1_000_000_000,
-            storage_mode: AccountStorageMode::Local,
-        })
-        .unwrap();
-
-    let faucet_account_id = faucet_account.id();
-    let fungible_asset = FungibleAsset::new(faucet_account_id, SMALL_BUY_IN_AMOUNT as u64).unwrap();
+    let faucet_account_id = get_faucet_id();
+    let asset = get_note_asset();
 
     let (game_account, _) = client
         .new_game_account(
@@ -77,9 +71,6 @@ pub async fn create_aze_game_account(
 
     let game_account_id = game_account.id();
 
-    println!("Account created: {:?}", game_account_id);
-
-    println!("First client consuming note");
     let note = mint_note(
         &mut client,
         game_account_id,
@@ -87,15 +78,13 @@ pub async fn create_aze_game_account(
         NoteType::Public,
     )
     .await;
-    println!("Minted note");
     consume_notes(&mut client, game_account_id, &[note]).await;
 
     // Send note for shuffling and encryption
     let sender_account_id = game_account_id;
     let target_account_id = AccountId::try_from(player_account_ids[0]).unwrap();
-    // let target_account_id = create_aze_player_account("player".to_string()).await.unwrap();
     let shuffle_card_data = ShuffleCardTransactionData::new(   
-        Asset::Fungible(fungible_asset),
+        asset,
         sender_account_id,
         target_account_id,
         [DEFAULT_ACTION_TYPE, player_account_ids[1], player_account_ids[2], player_account_ids[3]]
@@ -106,93 +95,9 @@ pub async fn create_aze_game_account(
         .build_aze_shuffle_card_tx_request(transaction_template)
         .unwrap();
     execute_tx_and_sync(&mut client, txn_request.clone()).await;
-    println!("Note sent!");
-    // let note_id = txn_request.expected_output_notes()[0].id();
-    // let note = client.get_input_note(note_id).unwrap();
-    // consume_notes(&mut client, target_account_id, &[note.try_into().unwrap()]).await;
-
-    // let (player_account, _) = client.get_account(target_account_id).unwrap();
-    // let mut cards: [[Felt; 4]; 52] = [[Felt::ZERO; 4]; 52];
-    // for (i, slot) in (1..53).enumerate() {
-    //     let card_digest = player_account.storage().get_item(slot);
-    //     cards[i] = card_digest.into();
-    // }
-
-    // // send remask note 
-    // let remask_data = RemaskTransactionData::new(   
-    //     Asset::Fungible(fungible_asset),
-    //     target_account_id,
-    //     target_account_id,
-    //     &cards,
-    //     [DEFAULT_ACTION_TYPE + 1, target_account_id.into(), target_account_id.into(), target_account_id.into()]
-    // );
-    // let transaction_template = AzeTransactionTemplate::Remask(remask_data);
-    // let txn_request = client
-    //     .build_aze_remask_tx_request(transaction_template)
-    //     .unwrap();
-    // execute_tx_and_sync(&mut client, txn_request.clone()).await;
-    // println!("Note sent!");
-    // let note_id = txn_request.expected_output_notes()[0].id();
-    // let note = client.get_input_note(note_id).unwrap();
-    // consume_notes(&mut client, target_account_id, &[note.try_into().unwrap()]).await;
-
-    // let (player_account, _) = client.get_account(target_account_id).unwrap();
-    // let mut cards: [[Felt; 4]; 3] = [[Felt::ZERO; 4]; 3];
-    // for (i, slot) in (1..4).enumerate() {
-    //     let card_digest = player_account.storage().get_item(slot);
-    //     cards[i] = card_digest.into();
-    // }
-
-    // // send inter-unmask note
-    // println!("Inter-unmasking...");
-    // let inter_unmask_data = InterUnmaskTransactionData::new(   
-    //     Asset::Fungible(fungible_asset),
-    //     target_account_id,
-    //     target_account_id,
-    //     &cards,
-    //     target_account_id
-    // );
-    // let transaction_template = AzeTransactionTemplate::InterUnmask(inter_unmask_data);
-    // let txn_request = client
-    //     .build_aze_inter_unmask_tx_request(transaction_template)
-    //     .unwrap();
-    // execute_tx_and_sync(&mut client, txn_request.clone()).await;
-    // println!("Note sent!");
-    // let note_id = txn_request.expected_output_notes()[0].id();
-    // let note = client.get_input_note(note_id).unwrap();
-    // consume_notes(&mut client, target_account_id, &[note.try_into().unwrap()]).await;
-
-    // let (player_account, _) = client.get_account(target_account_id).unwrap();
-    // let mut cards: [[Felt; 4]; 3] = [[Felt::ZERO; 4]; 3];
-    // for (i, slot) in (103..106).enumerate() {
-    //     let card_digest = player_account.storage().get_item(slot);
-    //     cards[i] = card_digest.into();
-    // }
-
-    // // send unmask note 
-    // println!("Unmasking...");
-    // let unmask_data = UnmaskTransactionData::new(   
-    //     Asset::Fungible(fungible_asset),
-    //     target_account_id,
-    //     target_account_id,
-    //     &cards,
-    //     PLAYER_CARD1_SLOT
-    // );
-    // let transaction_template = AzeTransactionTemplate::Unmask(unmask_data);
-    // let txn_request = client
-    //     .build_aze_unmask_tx_request(transaction_template)
-    //     .unwrap();
-    // execute_tx_and_sync(&mut client, txn_request.clone()).await;
-    // println!("Note sent!");
-    // let note_id = txn_request.expected_output_notes()[0].id();
-    // let note = client.get_input_note(note_id).unwrap();
-    // consume_notes(&mut client, target_account_id, &[note.try_into().unwrap()]).await;
-
-    // let (player_account, _) = client.get_account(target_account_id).unwrap();
-    // for slot in 1..109 {
-    //     let card_digest = player_account.storage().get_item(slot);
-    //     println!("Slot: {:?} --> {:?}", slot, card_digest);
-    // }
+    let note_id = txn_request.expected_output_notes()[0].id();
+    let note = client.get_input_note(note_id).unwrap();
+    consume_notes(&mut client, target_account_id, &[note.try_into().unwrap()]).await;
     
     Ok(game_account_id)
 }
@@ -226,27 +131,20 @@ pub async fn create_aze_player_account(
     );
 
     // keygen
-    let (faucet_account, _) = client
-        .new_account(AccountTemplate::FungibleFaucet {
-            token_symbol: TokenSymbol::new("MATIC").unwrap(),
-            decimals: 8,
-            max_supply: 1_000_000_000,
-            storage_mode: AccountStorageMode::Local,
-        })
-        .unwrap();
-    let fungible_asset = FungibleAsset::new(faucet_account.id(), SMALL_BUY_IN_AMOUNT as u64).unwrap();
+    let faucet_account_id = get_faucet_id();
+    let asset = get_note_asset();
 
     let note = mint_note(
         &mut client,
         player_account.id(),
-        faucet_account.id(),
+        faucet_account_id,
         NoteType::Public,
     )
     .await;
     consume_notes(&mut client, player_account.id(), &[note]).await;
 
     let gen_key_data = GenPrivateKeyTransactionData::new(  
-        Asset::Fungible(fungible_asset),
+        asset,
         player_account.id(),
         player_account.id(),
     );
@@ -255,7 +153,6 @@ pub async fn create_aze_player_account(
         .build_aze_key_gen_tx_request(transaction_template)
         .unwrap();
     execute_tx_and_sync(&mut client, txn_request.clone()).await;
-    println!("Note sent!");
     let note_id = txn_request.expected_output_notes()[0].id();
     let note = client.get_input_note(note_id).unwrap();
     consume_notes(&mut client, player_account.id(), &[note.try_into().unwrap()]).await;
@@ -274,7 +171,6 @@ pub async fn consume_game_notes(account_id: AccountId) {
         let tx_template = TransactionTemplate::ConsumeNotes(account_id, vec![consumable_note.note.id()]);
         let tx_request = client.build_transaction_request(tx_template).unwrap();
         execute_tx_and_sync(&mut client, tx_request).await;
-        println!("Waiting...");
         sleep(Duration::from_secs(5)).await;
     }
 }
@@ -288,29 +184,12 @@ pub async fn enc_action(action_type: u64, account_id: AccountId, target_account:
         cards[i] = card_digest.into();
     }
 
-    // fund account
-    let (faucet_account, _) = client
-        .new_account(AccountTemplate::FungibleFaucet {
-            token_symbol: TokenSymbol::new("MATIC").unwrap(),
-            decimals: 8,
-            max_supply: 1_000_000_000,
-            storage_mode: AccountStorageMode::Local,
-        })
-        .unwrap();
-    let fungible_asset = FungibleAsset::new(faucet_account.id(), SMALL_BUY_IN_AMOUNT as u64).unwrap();
-    let note = mint_note(
-        &mut client,
-        player_account.id(),
-        faucet_account.id(),
-        NoteType::Public,
-    )
-    .await;
-    consume_notes(&mut client, player_account.id(), &[note]).await;
+    let asset = get_note_asset();
 
     if action_type == 4 {
         // send set cards note to game account
         let set_cards_data = SetCardsTransactionData::new(   
-            Asset::Fungible(fungible_asset),
+            asset,
             player_account.id(),
             target_account,
             &cards,
@@ -320,7 +199,6 @@ pub async fn enc_action(action_type: u64, account_id: AccountId, target_account:
             .build_aze_set_cards_tx_request(transaction_template)
             .unwrap();
         execute_tx_and_sync(&mut client, txn_request.clone()).await;
-        println!("Note sent!");
         return
     }
 
@@ -329,7 +207,7 @@ pub async fn enc_action(action_type: u64, account_id: AccountId, target_account:
     let mut player_data = [action_type + 1, player_data[1].as_int(), player_data[2].as_int(), player_data[3].as_int()];
     player_data[action_type as usize] = account_id.into();
     let remask_data = RemaskTransactionData::new(   
-        Asset::Fungible(fungible_asset),
+        asset,
         account_id,
         target_account,
         &cards,
@@ -340,7 +218,6 @@ pub async fn enc_action(action_type: u64, account_id: AccountId, target_account:
         .build_aze_remask_tx_request(transaction_template)
         .unwrap();
     execute_tx_and_sync(&mut client, txn_request.clone()).await;
-    println!("Note sent!");
 }
 
 pub async fn p2p_unmask_flow(sender_account_id: AccountId, cards: [[Felt; 4]; 3]) -> Result<(), String> {
@@ -357,17 +234,9 @@ pub async fn p2p_unmask_flow(sender_account_id: AccountId, cards: [[Felt; 4]; 3]
     
     let receiver_account_id = AccountId::try_from(player_ids[next_player_idx as usize]).unwrap();
     // send inter-unmask note
-    let (faucet_account, _) = client
-        .new_account(AccountTemplate::FungibleFaucet {
-            token_symbol: TokenSymbol::new("MATIC").unwrap(),
-            decimals: 8,
-            max_supply: 1_000_000_000,
-            storage_mode: AccountStorageMode::Local,
-        })
-        .unwrap();
-    let fungible_asset = FungibleAsset::new(faucet_account.id(), SMALL_BUY_IN_AMOUNT as u64).unwrap();
+    let asset = get_note_asset();
     let inter_unmask_data = InterUnmaskTransactionData::new(   
-        Asset::Fungible(fungible_asset),
+        asset,
         sender_account_id,
         receiver_account_id,
         &cards,
@@ -378,7 +247,6 @@ pub async fn p2p_unmask_flow(sender_account_id: AccountId, cards: [[Felt; 4]; 3]
         .build_aze_inter_unmask_tx_request(transaction_template)
         .unwrap();
     execute_tx_and_sync(&mut client, txn_request.clone()).await;
-    println!("Note sent!");
 
     Ok(())
 }
@@ -394,17 +262,9 @@ pub async fn self_unmask(account_id: AccountId, card_slot: u8) -> Result<(), Str
     }
 
     // send unmask note
-    let (faucet_account, _) = client
-        .new_account(AccountTemplate::FungibleFaucet {
-            token_symbol: TokenSymbol::new("MATIC").unwrap(),
-            decimals: 8,
-            max_supply: 1_000_000_000,
-            storage_mode: AccountStorageMode::Local,
-        })
-        .unwrap();
-    let fungible_asset = FungibleAsset::new(faucet_account.id(), SMALL_BUY_IN_AMOUNT as u64).unwrap();
+    let asset = get_note_asset();
     let unmask_data = UnmaskTransactionData::new(   
-        Asset::Fungible(fungible_asset),
+        asset,
         account_id,
         account_id,
         &cards,
@@ -415,7 +275,6 @@ pub async fn self_unmask(account_id: AccountId, card_slot: u8) -> Result<(), Str
         .build_aze_unmask_tx_request(transaction_template)
         .unwrap();
     execute_tx_and_sync(&mut client, txn_request.clone()).await;
-    println!("Note sent!");
     let note_id = txn_request.expected_output_notes()[0].id();
     let note = client.get_input_note(note_id).unwrap();
     consume_notes(&mut client, account_id, &[note.try_into().unwrap()]).await;
@@ -423,32 +282,44 @@ pub async fn self_unmask(account_id: AccountId, card_slot: u8) -> Result<(), Str
     Ok(())
 }
 
-pub async fn send_community_cards(account_id: AccountId, receiver_account_id: AccountId, cards: [[Felt; 4]; 52]) {
+pub async fn set_community_cards(account_id: AccountId, receiver_account_id: AccountId, cards: [[Felt; 4]; 3], card_slot: u8) {
     let mut client: AzeClient = create_aze_client();
     let (player_account, _) = client.get_account(account_id).unwrap();
 
     // send set cards note to game account
-    let (faucet_account, _) = client
-        .new_account(AccountTemplate::FungibleFaucet {
-            token_symbol: TokenSymbol::new("MATIC").unwrap(),
-            decimals: 8,
-            max_supply: 1_000_000_000,
-            storage_mode: AccountStorageMode::Local,
-        })
-        .unwrap();
-    let fungible_asset = FungibleAsset::new(faucet_account.id(), SMALL_BUY_IN_AMOUNT as u64).unwrap();
-    let set_cards_data = SetCardsTransactionData::new(   
-        Asset::Fungible(fungible_asset),
+    let asset = get_note_asset();
+    let set_cards_data = UnmaskTransactionData::new(   
+        asset,
         account_id,
         receiver_account_id,
         &cards,
+        card_slot
     );
-    let transaction_template = AzeTransactionTemplate::SetCards(set_cards_data);
+    let transaction_template = AzeTransactionTemplate::Unmask(set_cards_data);
     let txn_request = client
         .build_aze_set_community_cards_tx_request(transaction_template)
         .unwrap();
     execute_tx_and_sync(&mut client, txn_request.clone()).await;
-    println!("Note sent!");
+}
+
+pub async fn send_community_cards(account_id: AccountId, receiver_account_id: AccountId, cards: [[Felt; 4]; 3], phase: u8) {
+    let mut client: AzeClient = create_aze_client();
+    let (player_account, _) = client.get_account(account_id).unwrap();
+
+    // send set cards note to game account
+    let asset = get_note_asset();
+    let send_cards_data = SendCommunityCardsTransactionData::new(   
+        asset,
+        account_id,
+        receiver_account_id,
+        &cards,
+        phase
+    );
+    let transaction_template = AzeTransactionTemplate::SendCommunityCards(send_cards_data);
+    let txn_request = client
+        .build_send_community_cards_tx_request(transaction_template)
+        .unwrap();
+    execute_tx_and_sync(&mut client, txn_request.clone()).await;
 }
 
 pub async fn send_unmasked_cards(account_id: AccountId, requester_id: AccountId) {
@@ -462,28 +333,52 @@ pub async fn send_unmasked_cards(account_id: AccountId, requester_id: AccountId)
     }
 
     // send set unmasked cards note
-    let (faucet_account, _) = client
-        .new_account(AccountTemplate::FungibleFaucet {
-            token_symbol: TokenSymbol::new("MATIC").unwrap(),
-            decimals: 8,
-            max_supply: 1_000_000_000,
-            storage_mode: AccountStorageMode::Local,
-        })
-        .unwrap();
-    let fungible_asset = FungibleAsset::new(faucet_account.id(), SMALL_BUY_IN_AMOUNT as u64).unwrap();
-    let player_data = player_account.storage().get_item(PLAYER_DATA_SLOT).as_elements().to_vec();
-    let action_type = player_data[0].as_int() as u8 + NO_OF_PLAYERS;
+    let asset = get_note_asset();
     let unmask_data = SendUnmaskedCardsTransactionData::new(   
-        Asset::Fungible(fungible_asset),
+        asset,
         account_id,
         requester_id,
         &cards,
-        [Felt::from(action_type), player_data[1], player_data[2], player_data[3]]
     );
     let transaction_template = AzeTransactionTemplate::SendUnmaskedCards(unmask_data);
     let txn_request = client
         .build_aze_send_unmasked_cards_tx_request(transaction_template)
         .unwrap();
     execute_tx_and_sync(&mut client, txn_request.clone()).await;
-    println!("Note sent!");
+}
+
+pub async fn commit_hand(account_id: AccountId, game_account_id: AccountId, player_hand: u8) {
+    let mut client: AzeClient = create_aze_client();
+    let (player_account, _) = client.get_account(account_id).unwrap();
+
+    // send commit hand note to game account
+    let asset = get_note_asset();
+
+    let mut cards: [[Felt; 4]; 2] = [[Felt::ZERO; 4]; 2];
+    for (i, slot) in (PLAYER_CARD1_SLOT..PLAYER_CARD2_SLOT + 1).enumerate() {
+        let card = player_account.storage().get_item(slot);
+        cards[i] = card.into();
+    }
+
+    let player_data = player_account.storage().get_item(PLAYER_DATA_SLOT).as_elements().to_vec();
+    let action_type = player_data[0].as_int() as u8;
+    let player_index = if action_type % NO_OF_PLAYERS != 0 {
+        action_type % NO_OF_PLAYERS
+    } else {
+        NO_OF_PLAYERS
+    };
+
+    let commit_hand_data = SetHandTransactionData::new(   
+        asset,
+        account_id,
+        game_account_id,
+        &cards,
+        player_hand,
+        player_index
+    );
+    let transaction_template = AzeTransactionTemplate::SetHand(commit_hand_data);
+    let txn_request = client
+        .build_aze_set_hand_tx_request(transaction_template)
+        .unwrap();
+    execute_tx_and_sync(&mut client, txn_request.clone()).await;
 }

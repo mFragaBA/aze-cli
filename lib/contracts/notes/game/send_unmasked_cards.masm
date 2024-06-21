@@ -14,8 +14,10 @@ proc.receive_cards
     dropw 
 end
 
-proc.set_player_data
+proc.increment_action_type
+    push.PLAYER_DATA_SLOT exec.account::get_item
     # => [p4, p3, p2, action_type]
+    movup.3 add.4 movdn.3
     push.PLAYER_DATA_SLOT exec.account::set_item
     dropw dropw 
 end
@@ -51,9 +53,8 @@ begin
         loc_store.0
     end
 
-    loc_load.0 mem_loadw
-    # => [p4, p3, p2, action_type]
-    call.set_player_data
+    dropw
+    call.increment_action_type
 
     exec.note::get_assets drop mem_loadw
     # => [ASSET, ...]

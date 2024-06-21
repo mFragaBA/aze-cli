@@ -172,7 +172,6 @@ pub async fn setup_accounts(
         NoteType::Public,
     )
     .await;
-    println!("Minted note");
     consume_notes(&mut client, player_account_id, &[note]).await;
 
     let fungible_asset = FungibleAsset::new(faucet_account_id, BUY_IN_AMOUNT).unwrap();

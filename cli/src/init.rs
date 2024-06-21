@@ -1,6 +1,7 @@
 use crate::accounts::{ create_aze_game_account, consume_game_notes, send_community_cards };
 use aze_lib::client::{ create_aze_client, AzeClient };
 use aze_lib::constants::{BUY_IN_AMOUNT, NO_OF_PLAYERS, SMALL_BLIND_AMOUNT, CURRENT_PHASE_SLOT};
+use aze_lib::utils::{ broadcast_message, Ws_config };
 use aze_lib::broadcast::initialise_server;
 use aze_types::accounts::AccountCreationError;
 use clap::{Parser, ValueEnum};
@@ -99,15 +100,36 @@ impl InitCmd {
                             continue;
                         }
 
+                        // broadcast message if game ends
+                        if phase == 3 {
+                            let mut ws_url: String = String::new();
+
+                            match Ws_config::load(ws_config).url {
+                                Some(url) => {
+                                    ws_url = url;
+                                }
+
+                                None => {
+                                    eprintln!("Ws_config DNE, use init or connect command before action");
+                                }
+                            }
+                            let _ = broadcast_message(
+                                game_account_id.to_string(),
+                                ws_url.clone(),
+                                format!("🥲 Game Ended ... "),
+                            )
+                            .await;
+                        }
+
                         // if phase changes, send community cards for unmasking
                         let player_account_id = AccountId::try_from(player_ids[0]).unwrap();
-                        let mut cards: [[Felt; 4]; 52] = [[Felt::ZERO; 4]; 52];
+                        let mut cards: [[Felt; 4]; 3] = [[Felt::ZERO; 4]; 3];
                         for (i, slot) in (1..4).enumerate() {
                             let card_digest = game_account.storage().get_item(slot);
                             cards[i] = card_digest.into();
                         }
                         // send community cards
-                        send_community_cards(game_account_id, player_account_id, cards).await;
+                        send_community_cards(game_account_id, player_account_id, cards, phase as u8).await;
                         sleep(Duration::from_secs(5)).await;
                     }
                 }).await;
