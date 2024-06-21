@@ -690,7 +690,13 @@ export.set_cards
     dropw dropw
 end
 
-# some basic account methods 
+export.set_hand
+    # => [index, hand, card2, card1]
+    push.0 swap
+    # => [index, 0, hand, card2, card1]
+    exec.account::set_item
+    dropw dropw
+end
 
 export.basic_wallet::receive_asset
 export.basic_wallet::send_asset

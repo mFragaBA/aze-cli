@@ -1,19 +1,27 @@
-use.std::math::ecgfp5::group
 use.miden::account
 use.miden::note
 use.miden::contracts::wallets::basic->wallet
+use.miden::contracts::poker::poker
 
 const.NO_OF_CARDS=3
+const.TEMP_CARD_SLOT=103
+const.PLAYER_DATA_SLOT=56
+const.PHASE_DATA_SLOT=57
 
-proc.set_cards
-    # => [card_index, Cb, Ca]
-    push.0 dup movup.2
-    # => [card_index, 0, 0, Cb, Ca]
+proc.receive_cards
     exec.account::set_item
-    dropw dropw
+    # => [R, V]
+    # drop the root
+    dropw 
 end
 
-begin 
+proc.set_phase
+    # => [0, 0, 0, current_phase]
+    push.PHASE_DATA_SLOT exec.account::set_item
+    dropw dropw 
+end
+
+begin   
     dropw
     # store index
     push.0 exec.note::get_inputs drop
@@ -21,22 +29,19 @@ begin
     loc_store.0
 
     # card_index
-    loc_load.0 push.NO_OF_CARDS add mem_load
-    loc_store.2
+    push.TEMP_CARD_SLOT loc_store.2
 
     repeat.NO_OF_CARDS
 
         loc_load.0 mem_loadw drop drop
         # => [Cb, Ca]
-        dup push.0 neq 
-        # => [0/1, Cb, Ca]
-
+        push.0 dup
+        # => [0, 0, Cb, Ca]
+        dup.3 push.0 neq
         if.true
-
             loc_load.2
-            # => [card_index, Cb, Ca]
-
-            call.set_cards
+            # => [card_index, 0, 0, Cb, Ca]
+            call.receive_cards
             # => [...]
             
             # update card_index
@@ -46,6 +51,10 @@ begin
         loc_load.0 push.1 add
         loc_store.0
     end
+
+    loc_load.0 mem_loadw
+    # => [0, 0, 0, current_phase]
+    call.set_phase
 
     exec.note::get_assets drop mem_loadw
     # => [ASSET, ...]
