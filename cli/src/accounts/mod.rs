@@ -313,14 +313,11 @@ pub async fn send_unmasked_cards(account_id: AccountId, requester_id: AccountId)
 
     // send set unmasked cards note
     let asset = get_note_asset();
-    let player_data = player_account.storage().get_item(PLAYER_DATA_SLOT).as_elements().to_vec();
-    let action_type = player_data[0].as_int() as u8 + NO_OF_PLAYERS;
     let unmask_data = SendUnmaskedCardsTransactionData::new(   
         asset,
         account_id,
         requester_id,
         &cards,
-        [Felt::from(action_type), player_data[1], player_data[2], player_data[3]]
     );
     let transaction_template = AzeTransactionTemplate::SendUnmaskedCards(unmask_data);
     let txn_request = client

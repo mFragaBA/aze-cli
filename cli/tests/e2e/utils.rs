@@ -250,14 +250,11 @@ pub async fn unmask_community_cards(client: &mut AzeClient, faucet_account_id:Ac
     }
 
     // set community cards to player account
-    let (player_account, _) = client.get_account(player_account_id).unwrap();
-    let player_data = player_account.storage().get_item(PLAYER_DATA_SLOT).as_elements().to_vec();
     let set_cards_data = SendUnmaskedCardsTransactionData::new(   
         Asset::Fungible(fungible_asset),
         game_account_id,
         player_account_id,
         &cards,
-        [player_data[0], player_data[1], player_data[2], player_data[3]]
     );
     let transaction_template = AzeTransactionTemplate::SendUnmaskedCards(set_cards_data);
     let txn_request = client
@@ -371,7 +368,6 @@ pub async fn p2p_unmask_flow(client: &mut AzeClient, faucet_account_id:AccountId
             player_id,
             requester_id,
             &cards,
-            [Felt::from(action_type), player_data[1], player_data[2], player_data[3]]
         );
         let transaction_template = AzeTransactionTemplate::SendUnmaskedCards(unmask_data);
         let txn_request = client

@@ -388,7 +388,6 @@ pub fn create_send_unmasked_cards_note<R: FeltRng, N: NodeRpcClient, S: Store, A
     note_type: NoteType,
     mut rng: RpoRandomCoin,
     cards: [[Felt; 4]; 3],
-    player_data: [Felt; 4],
 ) -> Result<Note, NoteError> {
     let note_script = include_str!("../../contracts/notes/game/send_unmasked_cards.masm");
     let script_ast = ProgramAst::parse(note_script).unwrap();
@@ -398,10 +397,8 @@ pub fn create_send_unmasked_cards_note<R: FeltRng, N: NodeRpcClient, S: Store, A
     for card in cards.iter() {
         unmasked_cards = [unmasked_cards, vec![card[0], card[1], Felt::ZERO, Felt::ZERO]].concat();
     }
-    let inputs = [unmasked_cards, player_data.to_vec()].concat();
-    
 
-    let note_inputs = NoteInputs::new(inputs).unwrap();
+    let note_inputs = NoteInputs::new(unmasked_cards).unwrap();
     let tag = NoteTag::from_account_id(target_account_id, NoteExecutionHint::Local)?;
     let serial_num = rng.draw_word();
     let aux = ZERO;

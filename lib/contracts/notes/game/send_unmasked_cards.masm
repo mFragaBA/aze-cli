@@ -51,8 +51,10 @@ begin
         loc_store.0
     end
 
-    loc_load.0 mem_loadw
+    push.PLAYER_DATA_SLOT exec.account::get_item
     # => [p4, p3, p2, action_type]
+    movup.3 add.4 movdn.3
+    # => [p4, p3, p2, action_type + 4]
     call.set_player_data
 
     exec.note::get_assets drop mem_loadw
