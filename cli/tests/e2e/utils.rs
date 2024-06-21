@@ -401,6 +401,7 @@ pub async fn commit_hand(
     faucet_account_id:AccountId, 
     game_account_id: AccountId, 
     player_account_id: AccountId,
+    player_hand: u8,
     player_index: u8
 ) {
     let fungible_asset = FungibleAsset::new(faucet_account_id, SMALL_BUY_IN_AMOUNT as u64).unwrap();
@@ -418,6 +419,7 @@ pub async fn commit_hand(
         player_account_id,
         game_account_id,
         &cards,
+        player_hand,
         player_index,
     );
     let transaction_template = AzeTransactionTemplate::SetHand(commit_hand_data);
