@@ -4,7 +4,6 @@ use.miden::note
 use.miden::contracts::wallets::basic->wallet
 
 const.NO_OF_CARDS=3
-const.COMMUNITY_CARDS_SLOT=116
 
 proc.set_cards
     # => [card_index, Cb, Ca]
@@ -22,7 +21,8 @@ begin
     loc_store.0
 
     # card_index
-    push.COMMUNITY_CARDS_SLOT loc_store.2
+    loc_load.0 push.NO_OF_CARDS add mem_load
+    loc_store.2
 
     repeat.NO_OF_CARDS
 
@@ -32,22 +32,6 @@ begin
         # => [0/1, Cb, Ca]
 
         if.true
-        
-            push.1
-            while.true
-                loc_load.2
-                # => [card_index, Cb, Ca]
-                dup call.account::get_item drop drop drop
-                # => [Ca', Cb, Ca]
-                push.0 neq
-                # => [0/1, Cb, Ca]
-                if.true
-                    loc_load.2 add.1 loc_store.2
-                    push.1
-                else
-                    push.0
-                end
-            end
 
             loc_load.2
             # => [card_index, Cb, Ca]

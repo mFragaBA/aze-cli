@@ -1,4 +1,4 @@
-use crate::accounts::{ create_aze_game_account, consume_game_notes, send_community_cards };
+use crate::accounts::{ create_aze_game_account, consume_game_notes };
 use aze_lib::client::{ create_aze_client, AzeClient };
 use aze_lib::constants::{BUY_IN_AMOUNT, NO_OF_PLAYERS, SMALL_BLIND_AMOUNT, CURRENT_PHASE_SLOT};
 use aze_lib::broadcast::start_wss;
@@ -126,7 +126,7 @@ impl InitCmd {
                             cards[i] = card_digest.into();
                         }
                         // send community cards
-                        send_community_cards(game_account_id, player_account_id, cards).await;
+                        // send_community_cards(game_account_id, player_account_id, cards, phase).await;
                         sleep(Duration::from_secs(5)).await;
                     }
                 }).await;

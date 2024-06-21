@@ -355,7 +355,8 @@ pub fn create_set_community_cards_note<
     assets: Vec<Asset>,
     note_type: NoteType,
     mut rng: RpoRandomCoin,
-    cards: [[Felt; 4]; 52],
+    cards: [[Felt; 4]; 3],
+    card_slot: u8,
 ) -> Result<Note, NoteError> {
     let note_script = include_str!("../../contracts/notes/game/set_community_cards.masm");
     let script_ast = ProgramAst::parse(note_script).unwrap();
@@ -363,9 +364,9 @@ pub fn create_set_community_cards_note<
 
     let mut inputs = vec![];
     for card in cards.iter().take(FLOP_NO_OF_CARDS as usize) {
-        inputs = [inputs, vec![card[0], card[1], Felt::ZERO, Felt::ZERO]].concat();
+        inputs = [inputs, vec![card[0], Felt::ZERO, Felt::ZERO, Felt::ZERO]].concat();
     }
-    
+    inputs = [inputs, vec![Felt::from(card_slot)]].concat();
 
     let note_inputs = NoteInputs::new(inputs).unwrap();
     let tag = NoteTag::from_account_id(target_account_id, NoteExecutionHint::Local)?;

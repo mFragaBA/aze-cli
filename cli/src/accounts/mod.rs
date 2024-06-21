@@ -281,19 +281,20 @@ pub async fn self_unmask(account_id: AccountId, card_slot: u8) -> Result<(), Str
     Ok(())
 }
 
-pub async fn send_community_cards(account_id: AccountId, receiver_account_id: AccountId, cards: [[Felt; 4]; 52]) {
+pub async fn set_community_cards(account_id: AccountId, receiver_account_id: AccountId, cards: [[Felt; 4]; 3], card_slot: u8) {
     let mut client: AzeClient = create_aze_client();
     let (player_account, _) = client.get_account(account_id).unwrap();
 
     // send set cards note to game account
     let asset = get_note_asset();
-    let set_cards_data = SetCardsTransactionData::new(   
+    let set_cards_data = UnmaskTransactionData::new(   
         asset,
         account_id,
         receiver_account_id,
         &cards,
+        card_slot
     );
-    let transaction_template = AzeTransactionTemplate::SetCards(set_cards_data);
+    let transaction_template = AzeTransactionTemplate::Unmask(set_cards_data);
     let txn_request = client
         .build_aze_set_community_cards_tx_request(transaction_template)
         .unwrap();

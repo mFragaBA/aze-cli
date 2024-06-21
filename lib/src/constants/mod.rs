@@ -9,7 +9,7 @@ pub const DEFAULT_AUTH_SCRIPT: &str = "
 pub const FAUCET_ACCOUNT_ID: u64 = 2453430428770133747;
 pub const CLIENT_CONFIG_FILE_NAME: &str = "miden-client.toml";
 pub const BUY_IN_AMOUNT: u64 = 1000;
-pub const SMALL_BUY_IN_AMOUNT: u8 = 100;
+pub const SMALL_BUY_IN_AMOUNT: u8 = 1;
 pub const TRANSFER_AMOUNT: u64 = 59;
 pub const SMALL_BLIND_AMOUNT: u8 = 5;
 pub const PLAYER_INITIAL_BALANCE: u8 = 30;
@@ -29,6 +29,7 @@ pub const HIGHEST_BET_SLOT: u8 = 61;
 pub const CURRENT_PHASE_SLOT: u8 = 62;
 pub const CHECK_COUNTER_SLOT: u8 = 63;
 pub const PLAYER_BALANCE_SLOT: u8 = 68;
+pub const FLOP_SLOT: u8 = 116;
 
 // PLAYER ACCOUNT
 pub const SECRET_KEY_SLOT: u8 = 53;
@@ -36,6 +37,7 @@ pub const DEFAULT_SKEY: u8 = 8;
 pub const MASKING_FACTOR_SLOT: u8 = 55;
 pub const DEFAULT_MASKING_FACTOR: u8 = 9;
 pub const PLAYER_DATA_SLOT: u8 = 56;
+pub const PHASE_DATA_SLOT: u8 = 57;
 pub const DEFAULT_ACTION_TYPE: u64 = 1;
 pub const PLAYER_CARD1_SLOT: u8 = 100;
 pub const PLAYER_CARD2_SLOT: u8 = 101;

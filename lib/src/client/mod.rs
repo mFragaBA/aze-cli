@@ -1510,13 +1510,14 @@ impl<N: NodeRpcClient, R: FeltRng, S: Store, A: TransactionAuthenticator> AzeGam
         let account_id = transaction_template.account_id();
         let account_auth = self.store().get_account_auth(account_id)?;
 
-        let (sender_account_id, target_account_id, asset, cards) = match transaction_template {
-            AzeTransactionTemplate::SetCards(SetCardsTransactionData {
+        let (sender_account_id, target_account_id, asset, cards, card_slot) = match transaction_template {
+            AzeTransactionTemplate::Unmask(UnmaskTransactionData {
                 asset,
                 sender_account_id,
                 target_account_id,
                 cards,
-            }) => (sender_account_id, target_account_id, asset, cards),
+                card_slot,
+            }) => (sender_account_id, target_account_id, asset, cards, card_slot),
             _ => panic!("Invalid transaction template"),
         };
 
@@ -1530,6 +1531,7 @@ impl<N: NodeRpcClient, R: FeltRng, S: Store, A: TransactionAuthenticator> AzeGam
             NoteType::Public,
             random_coin,
             cards,
+            card_slot
         )?;
 
         let recipient = created_note

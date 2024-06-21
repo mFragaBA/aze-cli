@@ -3,11 +3,11 @@ use crate::accounts::{
     enc_action,
     p2p_unmask_flow,
     self_unmask,
-    send_community_cards,
+    set_community_cards,
     send_unmasked_cards,
 };
 use aze_lib::client::{ create_aze_client, AzeClient };
-use aze_lib::constants::{ PLAYER_DATA_SLOT, PLAYER_CARD1_SLOT, TEMP_CARD_SLOT, REQUESTER_SLOT };
+use aze_lib::constants::{ PLAYER_DATA_SLOT, PLAYER_CARD1_SLOT, TEMP_CARD_SLOT, REQUESTER_SLOT, PHASE_DATA_SLOT, FLOP_SLOT };
 use clap::Parser;
 use miden_objects::{
     accounts::AccountId,
@@ -118,12 +118,19 @@ impl ConsumeNotesCmd {
                     self_unmask(account_id, TEMP_CARD_SLOT).await;
                     // send cards to game account
                     let game_account_id = AccountId::try_from(self.game_id).unwrap();
-                    let mut cards: [[Felt; 4]; 52] = [[Felt::ZERO; 4]; 52];
+                    let mut cards: [[Felt; 4]; 3] = [[Felt::ZERO; 4]; 3];
                     for (i, slot) in (TEMP_CARD_SLOT..TEMP_CARD_SLOT + 3).enumerate() {
                         let card_digest = player_account.storage().get_item(slot);
                         cards[i] = card_digest.into();
                     }
-                    send_community_cards(account_id, game_account_id, cards).await;
+                    let current_phase = player_account.storage().get_item(PHASE_DATA_SLOT).as_elements().to_vec()[0].as_int();
+                    let card_slot = match current_phase {
+                        1 => FLOP_SLOT,
+                        2 => FLOP_SLOT + 3,
+                        3 => FLOP_SLOT + 4,
+                        _ => FLOP_SLOT,
+                    };
+                    set_community_cards(account_id, game_account_id, cards, card_slot).await;
                 }
 
                 sleep(Duration::from_secs(5)).await;

@@ -28,6 +28,8 @@ use aze_lib::constants::{
     PLAYER_CARD2_SLOT,
     TEMP_CARD_SLOT,
     REQUESTER_SLOT,
+    CURRENT_PHASE_SLOT,
+    FLOP_SLOT,
 };
 use aze_lib::executor::execute_tx_and_sync;
 use aze_lib::utils::{ get_random_coin, load_config };
@@ -238,7 +240,7 @@ pub async fn peek_hand(client: &mut AzeClient, faucet_account_id:AccountId, play
     p2p_unmask_flow(client, faucet_account_id, player_account_id, [card_slot_start, card_slot_end]).await;
 }
 
-pub async fn unmask_community_cards(client: &mut AzeClient, faucet_account_id:AccountId, game_account_id: AccountId, player_account_id: AccountId) {
+pub async fn unmask_community_cards(client: &mut AzeClient, faucet_account_id:AccountId, game_account_id: AccountId, player_account_id: AccountId, current_phase: u8) {
     let fungible_asset = FungibleAsset::new(faucet_account_id, SMALL_BUY_IN_AMOUNT as u64).unwrap();
     let (game_account, _) = client.get_account(game_account_id).unwrap();
     let mut cards: [[Felt; 4]; 3] = [[Felt::ZERO; 4]; 3];
@@ -277,18 +279,26 @@ pub async fn unmask_community_cards(client: &mut AzeClient, faucet_account_id:Ac
 
     // set community cards back
     let (player_account, _) = client.get_account(player_account_id).unwrap();
-    let mut cards: [[Felt; 4]; 52] = [[Felt::ZERO; 4]; 52];
+    let mut cards: [[Felt; 4]; 3] = [[Felt::ZERO; 4]; 3];
     for (i, slot) in (TEMP_CARD_SLOT..TEMP_CARD_SLOT + 3).enumerate() {
         let card_digest = player_account.storage().get_item(slot);
         cards[i] = card_digest.into();
     }
-    let set_cards_data = SetCardsTransactionData::new(   
+    
+    let card_slot = match current_phase {
+        1 => FLOP_SLOT,
+        2 => FLOP_SLOT + 3,
+        3 => FLOP_SLOT + 4,
+        _ => FLOP_SLOT,
+    };
+    let set_cards_data = UnmaskTransactionData::new(   
         Asset::Fungible(fungible_asset),
         player_account_id,
         game_account_id,
         &cards,
+        card_slot,
     );
-    let transaction_template = AzeTransactionTemplate::SetCards(set_cards_data);
+    let transaction_template = AzeTransactionTemplate::Unmask(set_cards_data);
     let txn_request = client
         .build_aze_set_community_cards_tx_request(transaction_template)
         .unwrap();
@@ -298,7 +308,13 @@ pub async fn unmask_community_cards(client: &mut AzeClient, faucet_account_id:Ac
     consume_notes(client, game_account_id, &[note.try_into().unwrap()]).await;
     // check cards
     let (game_account, _) = client.get_account(game_account_id).unwrap();
-    for (i, slot) in (116..119).enumerate() {
+    let end_slot = match current_phase {
+        1 => FLOP_SLOT + 3,
+        2 => FLOP_SLOT + 4,
+        3 => FLOP_SLOT + 5,
+        _ => FLOP_SLOT + 3,
+    };
+    for (i, slot) in (card_slot..end_slot).enumerate() {
         let card: [Felt; 4] = game_account.storage().get_item(slot).into();
         assert_eq!(cards[i], [Felt::from(17 + i as u8), Felt::ZERO, Felt::ZERO, Felt::ZERO]);
     }
