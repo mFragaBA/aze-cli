@@ -121,7 +121,6 @@ pub async fn create_player_account(client: &mut AzeClient, faucet_account_id: Ac
         .build_aze_key_gen_tx_request(transaction_template)
         .unwrap();
     execute_tx_and_sync(client, txn_request.clone()).await;
-    println!("Note sent!");
     let note_id = txn_request.expected_output_notes()[0].id();
     let note = client.get_input_note(note_id).unwrap();
     consume_notes(client, player_account.id(), &[note.try_into().unwrap()]).await;
@@ -353,6 +352,7 @@ pub async fn p2p_unmask_flow(client: &mut AzeClient, faucet_account_id:AccountId
         let note = client.get_input_note(note_id).unwrap();
         consume_notes(client, player_id, &[note.try_into().unwrap()]).await;
 
+        let (player_account, _) = client.get_account(player_account_id).unwrap();
         let player_data = player_account.storage().get_item(PLAYER_DATA_SLOT).as_elements().to_vec();
         let action_type = player_data[0].as_int() as u8 + NO_OF_PLAYERS;
 

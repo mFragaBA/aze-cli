@@ -231,7 +231,14 @@ export.set_phase
     dropw dropw 
 end
 
+export.increment_action_type
+    push.PLAYER_DATA_SLOT exec.account::get_item
+    # => [p4, p3, p2, action_type]
+    movup.3 add.4 movdn.3
+    push.PLAYER_DATA_SLOT exec.account::set_item
+    dropw dropw 
+end
+
 export.basic_wallet::receive_asset
 export.basic_wallet::send_asset
 export.basic_eoa::auth_tx_rpo_falcon512
-export.account::get_item
