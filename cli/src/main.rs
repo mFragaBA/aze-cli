@@ -11,15 +11,9 @@ mod see_hands;
 mod stats;
 mod utils;
 use self::{
-    action::ActionCmd,
-    init::InitCmd,
-    consume_notes::ConsumeNotesCmd,
-    register::RegisterCmd,
-    connect::ConnectCmd,
-    stats::StatsCmd,
-    peek_hand::PeekHandCmd,
-    commit_hand::CommitHandCmd,
-    see_hands::SeeHandsCmd
+    action::ActionCmd, commit_hand::CommitHandCmd, connect::ConnectCmd,
+    consume_notes::ConsumeNotesCmd, init::InitCmd, peek_hand::PeekHandCmd, register::RegisterCmd,
+    see_hands::SeeHandsCmd, stats::StatsCmd,
 };
 use clap::Parser;
 
@@ -87,6 +81,7 @@ async fn main() {
             if let Err(error) = see_hands_cmd.execute(&ws_config_path).await {
                 println!("{}", error);
             }
+        }
         Commands::CommitHand(commit_hand_cmd) => {
             if let Err(error) = commit_hand_cmd.execute().await {
                 println!("{}", error);
