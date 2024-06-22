@@ -1,6 +1,7 @@
 use.miden::contracts::wallets::basic->basic_wallet
 use.miden::contracts::auth::basic->basic_eoa
 use.miden::account
+use.miden::tx
 
 const.G=7
 const.SECRET_KEY_SLOT=53
@@ -239,6 +240,13 @@ export.increment_action_type
     dropw dropw 
 end
 
+export.tx_state_change
+    push.1 exec.account::get_item
+    push.254 exec.account::set_item
+    dropw dropw
+end
+
 export.basic_wallet::receive_asset
 export.basic_wallet::send_asset
 export.basic_eoa::auth_tx_rpo_falcon512
+export.tx::create_note

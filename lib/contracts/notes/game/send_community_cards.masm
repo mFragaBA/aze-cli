@@ -56,12 +56,5 @@ begin
     # => [0, 0, 0, current_phase]
     call.set_phase
 
-    exec.note::get_assets drop mem_loadw
-    # => [ASSET, ...]
-
-    # load the asset and add it to the account
-    call.wallet::receive_asset
-    # => [...]
-
     dropw
 end

@@ -698,7 +698,14 @@ export.set_hand
     dropw dropw
 end
 
+export.tx_state_change
+    push.1 exec.account::get_item
+    push.254 exec.account::set_item
+    dropw dropw
+end
+
 export.basic_wallet::receive_asset
 export.basic_wallet::send_asset
 export.basic::auth_tx_rpo_falcon512
 export.account::get_item
+export.tx::create_note

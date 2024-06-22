@@ -26,14 +26,6 @@ begin
 
     call.gen_privatekey
     # => [...]
-    dropw
-
-    exec.note::get_assets drop mem_loadw
-    # => [ASSET, ...]
-
-    # load the asset and add it to the account
-    call.wallet::receive_asset
-    # => [...]
 
     dropw
 end

@@ -1,4 +1,3 @@
-use crate::utils::{ get_faucet_id, get_note_asset };
 use aze_enc::{ keygen, mask, remask, inter_unmask, final_unmask, CardCipher };
 use aze_lib::accounts::create_basic_aze_player_account;
 use aze_lib::client::{
@@ -32,8 +31,6 @@ use miden_client::client::{
 use miden_lib::AuthScheme;
 use miden_objects::{
     accounts::{AccountId, AuthSecretKey},
-    assets::TokenSymbol,
-    assets::{Asset, FungibleAsset},
     crypto::dsa::rpo_falcon512::{PublicKey, SecretKey},
     notes::NoteType,
     Felt, FieldElement
@@ -56,9 +53,6 @@ pub async fn create_aze_game_account(
         PLAYER_INITIAL_BALANCE,
     );
 
-    let faucet_account_id = get_faucet_id();
-    let asset = get_note_asset();
-
     let (game_account, _) = client
         .new_game_account(
             AzeAccountTemplate::GameAccount {
@@ -71,20 +65,11 @@ pub async fn create_aze_game_account(
 
     let game_account_id = game_account.id();
 
-    let note = mint_note(
-        &mut client,
-        game_account_id,
-        faucet_account_id,
-        NoteType::Public,
-    )
-    .await;
-    consume_notes(&mut client, game_account_id, &[note]).await;
-
     // Send note for shuffling and encryption
     let sender_account_id = game_account_id;
-    let target_account_id = AccountId::try_from(player_account_ids[0]).unwrap();
-    let shuffle_card_data = ShuffleCardTransactionData::new(   
-        asset,
+    // let target_account_id = AccountId::try_from(player_account_ids[0]).unwrap();
+    let target_account_id = create_aze_player_account("player1".to_string()).await.unwrap();
+    let shuffle_card_data = ShuffleCardTransactionData::new(
         sender_account_id,
         target_account_id,
         [DEFAULT_ACTION_TYPE, player_account_ids[1], player_account_ids[2], player_account_ids[3]]
@@ -131,31 +116,18 @@ pub async fn create_aze_player_account(
     );
 
     // keygen
-    let faucet_account_id = get_faucet_id();
-    let asset = get_note_asset();
-
-    let note = mint_note(
-        &mut client,
-        player_account.id(),
-        faucet_account_id,
-        NoteType::Public,
-    )
-    .await;
-    consume_notes(&mut client, player_account.id(), &[note]).await;
-
-    let gen_key_data = GenPrivateKeyTransactionData::new(  
-        asset,
-        player_account.id(),
-        player_account.id(),
-    );
-    let transaction_template = AzeTransactionTemplate::GenKey(gen_key_data);
-    let txn_request = client
-        .build_aze_key_gen_tx_request(transaction_template)
-        .unwrap();
-    execute_tx_and_sync(&mut client, txn_request.clone()).await;
-    let note_id = txn_request.expected_output_notes()[0].id();
-    let note = client.get_input_note(note_id).unwrap();
-    consume_notes(&mut client, player_account.id(), &[note.try_into().unwrap()]).await;
+    // let gen_key_data = GenPrivateKeyTransactionData::new(
+    //     player_account.id(),
+    //     player_account.id(),
+    // );
+    // let transaction_template = AzeTransactionTemplate::GenKey(gen_key_data);
+    // let txn_request = client
+    //     .build_aze_key_gen_tx_request(transaction_template)
+    //     .unwrap();
+    // execute_tx_and_sync(&mut client, txn_request.clone()).await;
+    // let note_id = txn_request.expected_output_notes()[0].id();
+    // let note = client.get_input_note(note_id).unwrap();
+    // consume_notes(&mut client, player_account.id(), &[note.try_into().unwrap()]).await;
 
     Ok(player_account.id())
 }
@@ -184,12 +156,9 @@ pub async fn enc_action(action_type: u64, account_id: AccountId, target_account:
         cards[i] = card_digest.into();
     }
 
-    let asset = get_note_asset();
-
     if action_type == 4 {
         // send set cards note to game account
-        let set_cards_data = SetCardsTransactionData::new(   
-            asset,
+        let set_cards_data = SetCardsTransactionData::new(
             player_account.id(),
             target_account,
             &cards,
@@ -206,8 +175,7 @@ pub async fn enc_action(action_type: u64, account_id: AccountId, target_account:
     let player_data = player_account.storage().get_item(PLAYER_DATA_SLOT).as_elements().to_vec();
     let mut player_data = [action_type + 1, player_data[1].as_int(), player_data[2].as_int(), player_data[3].as_int()];
     player_data[action_type as usize] = account_id.into();
-    let remask_data = RemaskTransactionData::new(   
-        asset,
+    let remask_data = RemaskTransactionData::new(
         account_id,
         target_account,
         &cards,
@@ -234,9 +202,7 @@ pub async fn p2p_unmask_flow(sender_account_id: AccountId, cards: [[Felt; 4]; 3]
     
     let receiver_account_id = AccountId::try_from(player_ids[next_player_idx as usize]).unwrap();
     // send inter-unmask note
-    let asset = get_note_asset();
-    let inter_unmask_data = InterUnmaskTransactionData::new(   
-        asset,
+    let inter_unmask_data = InterUnmaskTransactionData::new(
         sender_account_id,
         receiver_account_id,
         &cards,
@@ -262,9 +228,7 @@ pub async fn self_unmask(account_id: AccountId, card_slot: u8) -> Result<(), Str
     }
 
     // send unmask note
-    let asset = get_note_asset();
-    let unmask_data = UnmaskTransactionData::new(   
-        asset,
+    let unmask_data = UnmaskTransactionData::new(
         account_id,
         account_id,
         &cards,
@@ -287,9 +251,7 @@ pub async fn set_community_cards(account_id: AccountId, receiver_account_id: Acc
     let (player_account, _) = client.get_account(account_id).unwrap();
 
     // send set cards note to game account
-    let asset = get_note_asset();
-    let set_cards_data = UnmaskTransactionData::new(   
-        asset,
+    let set_cards_data = UnmaskTransactionData::new(
         account_id,
         receiver_account_id,
         &cards,
@@ -307,9 +269,7 @@ pub async fn send_community_cards(account_id: AccountId, receiver_account_id: Ac
     let (player_account, _) = client.get_account(account_id).unwrap();
 
     // send set cards note to game account
-    let asset = get_note_asset();
-    let send_cards_data = SendCommunityCardsTransactionData::new(   
-        asset,
+    let send_cards_data = SendCommunityCardsTransactionData::new(
         account_id,
         receiver_account_id,
         &cards,
@@ -333,9 +293,7 @@ pub async fn send_unmasked_cards(account_id: AccountId, requester_id: AccountId)
     }
 
     // send set unmasked cards note
-    let asset = get_note_asset();
-    let unmask_data = SendUnmaskedCardsTransactionData::new(   
-        asset,
+    let unmask_data = SendUnmaskedCardsTransactionData::new(
         account_id,
         requester_id,
         &cards,
@@ -352,7 +310,6 @@ pub async fn commit_hand(account_id: AccountId, game_account_id: AccountId, play
     let (player_account, _) = client.get_account(account_id).unwrap();
 
     // send commit hand note to game account
-    let asset = get_note_asset();
 
     let mut cards: [[Felt; 4]; 2] = [[Felt::ZERO; 4]; 2];
     for (i, slot) in (PLAYER_CARD1_SLOT..PLAYER_CARD2_SLOT + 1).enumerate() {
@@ -368,8 +325,7 @@ pub async fn commit_hand(account_id: AccountId, game_account_id: AccountId, play
         NO_OF_PLAYERS
     };
 
-    let commit_hand_data = SetHandTransactionData::new(   
-        asset,
+    let commit_hand_data = SetHandTransactionData::new(
         account_id,
         game_account_id,
         &cards,
