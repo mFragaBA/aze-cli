@@ -827,6 +827,10 @@ impl<N: NodeRpcClient, R: FeltRng, S: Store, A: TransactionAuthenticator> AzeGam
 
         let note_tag = created_note.metadata().tag().inner();
         let note_type = NoteType::Public;
+        println!("Note type: {:?}", note_type);
+        println!("Note tag: {:?}", note_tag);
+        println!("Recipient: {:?}", recipient);
+        println!("Sender: {:?}", sender_account_id);
 
         // let tx_script = ProgramAst::parse(
         //     &transaction_request::AUTH_SEND_ASSET_SCRIPT
@@ -854,13 +858,13 @@ impl<N: NodeRpcClient, R: FeltRng, S: Store, A: TransactionAuthenticator> AzeGam
                     push.{recipient}
                     push.{note_type}
                     push.{tag}
-                    call.tx::create_note
-                    dropw dropw
+                    call.tx::create_note 
+                    drop drop dropw dropw
                     call.tx_state_change dropw
                     call.auth_tx::auth_tx_rpo_falcon512
                     # => []
                 end
-            ",  
+            ",
             recipient = recipient,
             note_type = note_type as u8,
             tag = Felt::new(note_tag.into()).to_string()

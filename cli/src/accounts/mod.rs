@@ -148,28 +148,28 @@ pub async fn create_aze_player_account(
         .unwrap();
     let fungible_asset = FungibleAsset::new(faucet_account.id(), SMALL_BUY_IN_AMOUNT as u64).unwrap();
 
-    let note = mint_note(
-        &mut client,
-        player_account.id(),
-        faucet_account.id(),
-        NoteType::Public,
-    )
-    .await;
-    consume_notes(&mut client, player_account.id(), &[note]).await;
+    // let note = mint_note(
+    //     &mut client,
+    //     player_account.id(),
+    //     faucet_account.id(),
+    //     NoteType::Public,
+    // )
+    // .await;
+    // consume_notes(&mut client, player_account.id(), &[note]).await;
 
-    let gen_key_data = GenPrivateKeyTransactionData::new(  
-        Asset::Fungible(fungible_asset),
-        player_account.id(),
-        player_account.id(),
-    );
-    let transaction_template = AzeTransactionTemplate::GenKey(gen_key_data);
-    let txn_request = client
-        .build_aze_key_gen_tx_request(transaction_template)
-        .unwrap();
-    execute_tx_and_sync(&mut client, txn_request.clone()).await;
-    let note_id = txn_request.expected_output_notes()[0].id();
-    let note = client.get_input_note(note_id).unwrap();
-    consume_notes(&mut client, player_account.id(), &[note.try_into().unwrap()]).await;
+    // let gen_key_data = GenPrivateKeyTransactionData::new(  
+    //     Asset::Fungible(fungible_asset),
+    //     player_account.id(),
+    //     player_account.id(),
+    // );
+    // let transaction_template = AzeTransactionTemplate::GenKey(gen_key_data);
+    // let txn_request = client
+    //     .build_aze_key_gen_tx_request(transaction_template)
+    //     .unwrap();
+    // execute_tx_and_sync(&mut client, txn_request.clone()).await;
+    // let note_id = txn_request.expected_output_notes()[0].id();
+    // let note = client.get_input_note(note_id).unwrap();
+    // consume_notes(&mut client, player_account.id(), &[note.try_into().unwrap()]).await;
 
     Ok(player_account.id())
 }
