@@ -45,7 +45,6 @@ use miden_client::{
 };
 use miden_lib::AuthScheme;
 use miden_objects::{
-    assets::{ TokenSymbol, FungibleAsset, Asset },
     accounts::{ Account, AccountId, AccountType, AuthSecretKey },
     crypto::{
         dsa::rpo_falcon512::{PublicKey, SecretKey},
@@ -59,30 +58,7 @@ pub fn create_test_client() -> AzeClient {
     create_aze_client()
 }
 
-pub fn create_faucet_account(client: &mut AzeClient) -> AccountId {
-    let (faucet_account, _) = client
-        .new_account(AccountTemplate::FungibleFaucet {
-            token_symbol: TokenSymbol::new("MATIC").unwrap(),
-            decimals: 8,
-            max_supply: 1_000_000_000,
-            storage_mode: AccountStorageMode::Local,
-        })
-        .unwrap();
-    faucet_account.id()
-}
-
-pub async fn fund_accout(client: &mut AzeClient, faucet_account_id: AccountId, account_id: AccountId) {
-    let note = mint_note(
-        client,
-        account_id,
-        faucet_account_id,
-        NoteType::Public,
-    )
-    .await;
-    consume_notes(client, account_id, &[note]).await;
-}
-
-pub async fn create_player_account(client: &mut AzeClient, faucet_account_id: AccountId) -> AccountId {
+pub async fn create_player_account(client: &mut AzeClient) -> AccountId {
     let key_pair = SecretKey::new();
     let pub_key: PublicKey = key_pair.public_key();
     let auth_scheme: AuthScheme = AuthScheme::RpoFalcon512 { pub_key };
@@ -106,13 +82,8 @@ pub async fn create_player_account(client: &mut AzeClient, faucet_account_id: Ac
         &AuthSecretKey::RpoFalcon512(key_pair),
     );
 
-    // fund the player account
-    fund_accout(client, faucet_account_id, player_account.id()).await;
-
     // keygen
-    let fungible_asset = FungibleAsset::new(faucet_account_id, SMALL_BUY_IN_AMOUNT as u64).unwrap();
-    let gen_key_data = GenPrivateKeyTransactionData::new(  
-        Asset::Fungible(fungible_asset),
+    let gen_key_data = GenPrivateKeyTransactionData::new(
         player_account.id(),
         player_account.id(),
     );
@@ -128,7 +99,7 @@ pub async fn create_player_account(client: &mut AzeClient, faucet_account_id: Ac
     player_account.id()
 }
 
-pub async fn create_game_account(client: &mut AzeClient, faucet_account_id: AccountId) -> AccountId {
+pub async fn create_game_account(client: &mut AzeClient) -> AccountId {
     let slot_data = GameStorageSlotData::new(
         SMALL_BLIND_AMOUNT,
         BUY_IN_AMOUNT as u8,
@@ -148,17 +119,12 @@ pub async fn create_game_account(client: &mut AzeClient, faucet_account_id: Acco
         )
         .unwrap();
     
-    // fund the game account
-    fund_accout(client, faucet_account_id, game_account.id()).await;
-    
     game_account.id()
 }
 
-pub async fn mask_cards(client: &mut AzeClient, game_account_id: AccountId, faucet_account_id: AccountId, player_account_ids: Vec<AccountId>) {
-    let fungible_asset = FungibleAsset::new(faucet_account_id, SMALL_BUY_IN_AMOUNT as u64).unwrap();
+pub async fn mask_cards(client: &mut AzeClient, game_account_id: AccountId, player_account_ids: Vec<AccountId>) {
     let target_account_id = player_account_ids[0];
-    let shuffle_card_data = ShuffleCardTransactionData::new(   
-        Asset::Fungible(fungible_asset),
+    let shuffle_card_data = ShuffleCardTransactionData::new(
         game_account_id,
         target_account_id,
         [DEFAULT_ACTION_TYPE, player_account_ids[1].into(), player_account_ids[2].into(), player_account_ids[3].into()]
@@ -174,8 +140,7 @@ pub async fn mask_cards(client: &mut AzeClient, game_account_id: AccountId, fauc
     consume_notes(client, target_account_id, &[note.try_into().unwrap()]).await;
 }
 
-pub async fn remask_cards(client: &mut AzeClient, game_account_id: AccountId, faucet_account_id: AccountId, player_account_ids: Vec<AccountId>, action_type: u64) {
-    let fungible_asset = FungibleAsset::new(faucet_account_id, SMALL_BUY_IN_AMOUNT as u64).unwrap();
+pub async fn remask_cards(client: &mut AzeClient, game_account_id: AccountId, player_account_ids: Vec<AccountId>, action_type: u64) {
     let target_account_id = player_account_ids[action_type as usize - 1];
     let mut player_data = vec![player_account_ids[0].into(), player_account_ids[1].into(), player_account_ids[2].into(), player_account_ids[3].into()];
     player_data.remove(action_type as usize - 1);
@@ -188,8 +153,7 @@ pub async fn remask_cards(client: &mut AzeClient, game_account_id: AccountId, fa
         cards[i] = card_digest.into();
     }
 
-    let remask_data = RemaskTransactionData::new(   
-        Asset::Fungible(fungible_asset),
+    let remask_data = RemaskTransactionData::new(
         game_account_id,
         target_account_id,
         &cards,
@@ -212,8 +176,7 @@ pub async fn remask_cards(client: &mut AzeClient, game_account_id: AccountId, fa
         let card_digest = player_account.storage().get_item(slot);
         cards[i] = card_digest.into();
     }
-    let set_cards_data = SetCardsTransactionData::new(   
-        Asset::Fungible(fungible_asset),
+    let set_cards_data = SetCardsTransactionData::new(
         target_account_id,
         game_account_id,
         &cards,
@@ -235,14 +198,13 @@ pub async fn remask_cards(client: &mut AzeClient, game_account_id: AccountId, fa
     }
 }
 
-pub async fn peek_hand(client: &mut AzeClient, faucet_account_id:AccountId, player_account_id: AccountId) {
+pub async fn peek_hand(client: &mut AzeClient, player_account_id: AccountId) {
     let card_slot_start = PLAYER_CARD1_SLOT;
     let card_slot_end = PLAYER_CARD2_SLOT;
-    p2p_unmask_flow(client, faucet_account_id, player_account_id, [card_slot_start, card_slot_end]).await;
+    p2p_unmask_flow(client, player_account_id, [card_slot_start, card_slot_end]).await;
 }
 
-pub async fn unmask_community_cards(client: &mut AzeClient, faucet_account_id:AccountId, game_account_id: AccountId, player_account_id: AccountId, current_phase: u8) {
-    let fungible_asset = FungibleAsset::new(faucet_account_id, SMALL_BUY_IN_AMOUNT as u64).unwrap();
+pub async fn unmask_community_cards(client: &mut AzeClient, game_account_id: AccountId, player_account_id: AccountId, current_phase: u8) {
     let (game_account, _) = client.get_account(game_account_id).unwrap();
     let mut cards: [[Felt; 4]; 3] = [[Felt::ZERO; 4]; 3];
     for (i, slot) in (1..4).enumerate() {
@@ -251,8 +213,7 @@ pub async fn unmask_community_cards(client: &mut AzeClient, faucet_account_id:Ac
     }
 
     // send community cards to player account
-    let send_cards_data = SendCommunityCardsTransactionData::new(   
-        Asset::Fungible(fungible_asset),
+    let send_cards_data = SendCommunityCardsTransactionData::new(
         game_account_id,
         player_account_id,
         &cards,
@@ -276,7 +237,7 @@ pub async fn unmask_community_cards(client: &mut AzeClient, faucet_account_id:Ac
     assert_eq!(phase_data, RpoDigest::new([Felt::from(current_phase), Felt::ZERO, Felt::ZERO, Felt::ZERO]));
 
     // unmask community cards
-    p2p_unmask_flow(client, faucet_account_id, player_account_id, [TEMP_CARD_SLOT, TEMP_CARD_SLOT + 2]).await;
+    p2p_unmask_flow(client, player_account_id, [TEMP_CARD_SLOT, TEMP_CARD_SLOT + 2]).await;
 
     // set community cards back
     let (player_account, _) = client.get_account(player_account_id).unwrap();
@@ -292,8 +253,7 @@ pub async fn unmask_community_cards(client: &mut AzeClient, faucet_account_id:Ac
         3 => FLOP_SLOT + 4,
         _ => FLOP_SLOT,
     };
-    let set_cards_data = UnmaskTransactionData::new(   
-        Asset::Fungible(fungible_asset),
+    let set_cards_data = UnmaskTransactionData::new(
         player_account_id,
         game_account_id,
         &cards,
@@ -321,8 +281,7 @@ pub async fn unmask_community_cards(client: &mut AzeClient, faucet_account_id:Ac
     }
 }
 
-pub async fn p2p_unmask_flow(client: &mut AzeClient, faucet_account_id:AccountId, player_account_id: AccountId, card_slots: [u8; 2]) {
-    let fungible_asset = FungibleAsset::new(faucet_account_id, SMALL_BUY_IN_AMOUNT as u64).unwrap();
+pub async fn p2p_unmask_flow(client: &mut AzeClient, player_account_id: AccountId, card_slots: [u8; 2]) {
     
     let (player_account, _) = client.get_account(player_account_id).unwrap();
     let player_data = player_account.storage().get_item(PLAYER_DATA_SLOT).as_elements().to_vec();
@@ -336,8 +295,7 @@ pub async fn p2p_unmask_flow(client: &mut AzeClient, faucet_account_id:AccountId
 
     for player_id in player_ids.iter() {
         let player_id = AccountId::try_from(*player_id).unwrap();
-        let inter_unmask_data = InterUnmaskTransactionData::new(   
-            Asset::Fungible(fungible_asset),
+        let inter_unmask_data = InterUnmaskTransactionData::new(
             player_account_id,
             player_id,
             &cards,
@@ -368,8 +326,7 @@ pub async fn p2p_unmask_flow(client: &mut AzeClient, faucet_account_id:AccountId
             let card_digest = player_account.storage().get_item(slot);
             cards[i] = card_digest.into();
         }
-        let unmask_data = SendUnmaskedCardsTransactionData::new(   
-            Asset::Fungible(fungible_asset),
+        let unmask_data = SendUnmaskedCardsTransactionData::new(
             player_id,
             requester_id,
             &cards,
@@ -396,8 +353,7 @@ pub async fn p2p_unmask_flow(client: &mut AzeClient, faucet_account_id:AccountId
     }
 
     // send unmask note to itself
-    let unmask_data = UnmaskTransactionData::new(   
-        Asset::Fungible(fungible_asset),
+    let unmask_data = UnmaskTransactionData::new(
         player_account_id,
         player_account_id,
         &cards,
@@ -414,14 +370,12 @@ pub async fn p2p_unmask_flow(client: &mut AzeClient, faucet_account_id:AccountId
 }
 
 pub async fn commit_hand(
-    client: &mut AzeClient, 
-    faucet_account_id:AccountId, 
+    client: &mut AzeClient,
     game_account_id: AccountId, 
     player_account_id: AccountId,
     player_hand: u8,
     player_index: u8
 ) {
-    let fungible_asset = FungibleAsset::new(faucet_account_id, SMALL_BUY_IN_AMOUNT as u64).unwrap();
     let (player_account, _) = client.get_account(player_account_id).unwrap();
 
     // send commit hand note to game account
@@ -431,8 +385,7 @@ pub async fn commit_hand(
         cards[i] = card.into();
     }
 
-    let commit_hand_data = SetHandTransactionData::new(   
-        Asset::Fungible(fungible_asset),
+    let commit_hand_data = SetHandTransactionData::new(
         player_account_id,
         game_account_id,
         &cards,

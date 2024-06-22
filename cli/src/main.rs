@@ -8,7 +8,6 @@ mod init;
 mod peek_hand;
 mod register;
 mod stats;
-mod utils;
 use self::{
     action::ActionCmd,
     init::InitCmd,

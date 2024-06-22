@@ -67,8 +67,7 @@ pub async fn create_aze_game_account(
 
     // Send note for shuffling and encryption
     let sender_account_id = game_account_id;
-    // let target_account_id = AccountId::try_from(player_account_ids[0]).unwrap();
-    let target_account_id = create_aze_player_account("player1".to_string()).await.unwrap();
+    let target_account_id = AccountId::try_from(player_account_ids[0]).unwrap();
     let shuffle_card_data = ShuffleCardTransactionData::new(
         sender_account_id,
         target_account_id,
@@ -80,9 +79,6 @@ pub async fn create_aze_game_account(
         .build_aze_shuffle_card_tx_request(transaction_template)
         .unwrap();
     execute_tx_and_sync(&mut client, txn_request.clone()).await;
-    let note_id = txn_request.expected_output_notes()[0].id();
-    let note = client.get_input_note(note_id).unwrap();
-    consume_notes(&mut client, target_account_id, &[note.try_into().unwrap()]).await;
     
     Ok(game_account_id)
 }
@@ -116,18 +112,18 @@ pub async fn create_aze_player_account(
     );
 
     // keygen
-    // let gen_key_data = GenPrivateKeyTransactionData::new(
-    //     player_account.id(),
-    //     player_account.id(),
-    // );
-    // let transaction_template = AzeTransactionTemplate::GenKey(gen_key_data);
-    // let txn_request = client
-    //     .build_aze_key_gen_tx_request(transaction_template)
-    //     .unwrap();
-    // execute_tx_and_sync(&mut client, txn_request.clone()).await;
-    // let note_id = txn_request.expected_output_notes()[0].id();
-    // let note = client.get_input_note(note_id).unwrap();
-    // consume_notes(&mut client, player_account.id(), &[note.try_into().unwrap()]).await;
+    let gen_key_data = GenPrivateKeyTransactionData::new(
+        player_account.id(),
+        player_account.id(),
+    );
+    let transaction_template = AzeTransactionTemplate::GenKey(gen_key_data);
+    let txn_request = client
+        .build_aze_key_gen_tx_request(transaction_template)
+        .unwrap();
+    execute_tx_and_sync(&mut client, txn_request.clone()).await;
+    let note_id = txn_request.expected_output_notes()[0].id();
+    let note = client.get_input_note(note_id).unwrap();
+    consume_notes(&mut client, player_account.id(), &[note.try_into().unwrap()]).await;
 
     Ok(player_account.id())
 }
