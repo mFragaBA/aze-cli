@@ -56,5 +56,5 @@ begin
     # => [0, 0, 0, current_phase]
     call.set_phase
 
-    dropw
+    dropw dropw
 end

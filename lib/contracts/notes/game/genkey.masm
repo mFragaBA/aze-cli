@@ -27,5 +27,5 @@ begin
     call.gen_privatekey
     # => [...]
 
-    dropw
+    dropw dropw
 end

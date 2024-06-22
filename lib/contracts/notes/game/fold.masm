@@ -181,5 +181,5 @@ begin
     call.play_fold
     # => [...]
 
-    dropw
+    dropw dropw
 end

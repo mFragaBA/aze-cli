@@ -121,5 +121,5 @@ begin
     # => [p4, p3, p2, action_type]
     call.set_player_data
 
-    dropw
+    dropw dropw
 end

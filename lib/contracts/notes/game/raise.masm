@@ -179,5 +179,5 @@ begin
     call.play_raise 
     # => [...]
 
-    dropw
+    dropw dropw
 end

@@ -33,5 +33,5 @@ begin
     push.101 call.receive_cards 
     # => [...]
 
-    dropw
+    dropw dropw
 end

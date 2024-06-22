@@ -56,5 +56,5 @@ begin
     dropw
     call.increment_action_type
 
-    dropw
+    dropw dropw
 end

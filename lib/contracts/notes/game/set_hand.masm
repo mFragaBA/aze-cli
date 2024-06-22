@@ -33,5 +33,5 @@ begin
     call.set_hand
     # => [...]
 
-    dropw
+    dropw dropw
 end

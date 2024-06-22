@@ -167,5 +167,5 @@ begin
     call.play_bet
     # => [...]
 
-    dropw
+    dropw dropw
 end

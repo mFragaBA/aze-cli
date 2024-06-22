@@ -53,5 +53,5 @@ begin
         loc_store.0
     end
 
-    dropw
+    dropw dropw
 end

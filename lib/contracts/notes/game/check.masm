@@ -255,5 +255,5 @@ begin
     call.play_check
     # => [...]
 
-    dropw
+    dropw dropw
 end

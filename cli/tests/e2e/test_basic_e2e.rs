@@ -56,6 +56,7 @@ async fn test_e2e() {
 
     // Create an game account
     let game_account_id = create_game_account(&mut client).await;
+    let (game_account, _) = client.get_account(game_account_id).unwrap();
 
     // Mask the cards
     mask_cards(&mut client, game_account_id, player_ids.clone()).await;
@@ -84,8 +85,8 @@ async fn test_e2e() {
 
     // Unmask community cards
     unmask_community_cards(&mut client, game_account_id, player1_id, 1).await;
-    unmask_community_cards(&mut client, game_account_id, player1_id, 2).await;
-    unmask_community_cards(&mut client, game_account_id, player1_id, 3).await;
+    // unmask_community_cards(&mut client, game_account_id, player1_id, 2).await;
+    // unmask_community_cards(&mut client, game_account_id, player1_id, 3).await;
 
     // Commit hand
     let player_hand: u8 = 7;

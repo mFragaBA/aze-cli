@@ -217,5 +217,5 @@ begin
     call.play_call
     # => [...]
 
-    dropw
+    dropw dropw
 end
