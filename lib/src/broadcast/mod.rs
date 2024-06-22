@@ -15,6 +15,10 @@ use warp::ws::Ws;
 use warp::Filter;
 
 use crate::client::{create_aze_client, AzeClient};
+use crate::constants::{
+    COMMUNITY_CARDS, CURRENT_PHASE_SLOT, CURRENT_TURN_INDEX_SLOT, NO_OF_PLAYERS,
+    PLAYER_BALANCE_SLOT, PLAYER_HANDS, POT_VALUE,
+};
 use crate::gamestate::{Check_Action, PokerGame};
 use crate::utils::Ws_config;
 type Peers = Arc<RwLock<HashMap<String, broadcast::Sender<TungsteniteMessage>>>>;
@@ -36,6 +40,9 @@ struct StatResponse {
     pub player_balances: Vec<u64>,
     pub current_player: u64,
     pub pot_value: u64,
+    pub player_hands: Vec<u64>,
+    pub current_state: u64,
+    pub player_hand_cards: Vec<Vec<u64>>
 }
 
 #[derive(Deserialize, Serialize)]
@@ -223,7 +230,7 @@ async fn handle_websocket(socket: warp::ws::WebSocket, game_id: String, peers: P
         }
     });
 
-    info!("WebSocket connection established for game_id: {}", game_id);
+    println!("WebSocket connection established for game_id: {}", game_id);
 }
 
 async fn publish_handler(
@@ -251,44 +258,69 @@ async fn stat_handler(body: StatRequest) -> Result<impl warp::Reply, warp::Rejec
     let mut client: AzeClient = create_aze_client();
     let game_account_id = AccountId::from_hex(&game_id).unwrap();
     let game_account = client.get_account(game_account_id).unwrap().0;
-    //slot values
-    let CURRENT_TURN_PLAYER_SLOT: u8 = 60;
-    let CURRENT_TURN_PLAYER_ID = game_account
+
+    let current_turn_player_id = game_account
         .storage()
-        .get_item(CURRENT_TURN_PLAYER_SLOT)
+        .get_item(CURRENT_TURN_INDEX_SLOT)
         .as_elements()[0]
         .as_int();
-    let POT_VALUE: u8 = 60;
-    let COMMUNITY_CARDS: u8 = 76;
-    let P1_BALANCE: u8 = 68;
-    let NUM_PLAYERS: u8 = 57;
 
     let pot_value = game_account.storage().get_item(POT_VALUE).as_elements()[0].as_int();
 
+    // Array with balance of players
     let mut player_balances: Vec<u64> = vec![];
-    let num_players = game_account.storage().get_item(NUM_PLAYERS).as_elements()[0].as_int();
-    for i in 0..num_players {
-        let SLOT_VALUE = P1_BALANCE + (i * 13) as u8;
-        player_balances.push(game_account.storage().get_item(SLOT_VALUE).as_elements()[0].as_int());
+
+    // Each players hands Eg: "Straight Flush"
+    let mut player_hands: Vec<u64> = vec![];
+
+    //Community cards
+    let mut community_cards: Vec<u64> = vec![];
+
+    // Player hand cards
+    let mut player_hand_cards: Vec<Vec<u64>> = Vec::new();
+
+    // get balance and player's hands
+    for i in 0..NO_OF_PLAYERS {
+        let balance_slot: u8 = PLAYER_BALANCE_SLOT + (i * 13) as u8;
+        let hands_slot: u8 = PLAYER_HANDS + (i * 13) as u8;
+        player_balances
+            .push(game_account.storage().get_item(balance_slot).as_elements()[0].as_int());
+        // Hand Slot storage structure: [player card 1 index, player card 2 index, hand type, 0]
+        let player_hand_slot_data = game_account
+            .storage()
+            .get_item(hands_slot)
+            .as_elements()
+            .to_vec();
+        player_hands.push(player_hand_slot_data[2].as_int());
+        player_hand_cards.push(vec![
+            player_hand_slot_data[0].as_int(),
+            player_hand_slot_data[1].as_int(),
+        ])
     }
-    let community_cards = game_account
-        .storage()
-        .get_item(COMMUNITY_CARDS)
-        .as_elements()
-        .to_vec();
-    let community_cards_int: Vec<u64> = community_cards.iter().map(|n| n.as_int()).collect();
+
+    for i in COMMUNITY_CARDS {
+        community_cards.push(game_account.storage().get_item(i).as_elements()[0].as_int());
+    }
 
     let current_player = game_account
         .storage()
-        .get_item(CURRENT_TURN_PLAYER_ID as u8)
+        .get_item(current_turn_player_id as u8)
+        .as_elements()[0]
+        .as_int();
+    let current_state = game_account
+        .storage()
+        .get_item(CURRENT_PHASE_SLOT)
         .as_elements()[0]
         .as_int();
 
     Ok(warp::reply::json(&StatResponse {
-        community_cards: community_cards_int,
+        community_cards,
         player_balances,
         current_player,
         pot_value,
+        player_hands,
+        current_state,
+        player_hand_cards
     }))
 }
 

@@ -1,8 +1,10 @@
 use crate::accounts::{ create_aze_game_account, consume_game_notes, send_community_cards };
 use aze_lib::client::{ create_aze_client, AzeClient };
-use aze_lib::constants::{BUY_IN_AMOUNT, NO_OF_PLAYERS, SMALL_BLIND_AMOUNT, CURRENT_PHASE_SLOT};
-use aze_lib::utils::{ broadcast_message, Ws_config };
 use aze_lib::broadcast::initialise_server;
+use aze_lib::constants::{
+    BUY_IN_AMOUNT, COMMUNITY_CARDS, CURRENT_PHASE_SLOT, NO_OF_PLAYERS, SMALL_BLIND_AMOUNT,
+};
+use aze_lib::utils::{broadcast_message, card_from_number, Ws_config};
 use aze_types::accounts::AccountCreationError;
 use clap::{Parser, ValueEnum};
 use figment::{
@@ -84,55 +86,132 @@ impl InitCmd {
                 });
                 let mut client: AzeClient = create_aze_client();
                 let local_set = LocalSet::new();
-                local_set.run_until(async {
-                    loop {
-                        let (game_account, _) = client.get_account(game_account_id).unwrap();
-                        let phase_data = game_account.storage().get_item(CURRENT_PHASE_SLOT).as_elements().to_vec();
-                        let pre_phase = phase_data[0].as_int();
-                        consume_game_notes(game_account_id).await;
-                        let (game_account, _) = client.get_account(game_account_id).unwrap();
-                        let phase_data = game_account.storage().get_item(CURRENT_PHASE_SLOT).as_elements().to_vec();
-                        let phase = phase_data[0].as_int();
+                let mut ws_url: String = String::new();
 
-                        // if phase is not incremented post consumption, continue
-                        if pre_phase + 1 != phase {
-                            sleep(Duration::from_secs(5)).await;
-                            continue;
-                        }
+                match Ws_config::load(ws_config).url {
+                    Some(url) => {
+                        ws_url = url;
+                    }
 
-                        // broadcast message if game ends
-                        if phase == 3 {
-                            let mut ws_url: String = String::new();
+                    None => {
+                        eprintln!("Ws_config DNE, use init or connect command before action");
+                    }
+                }
+                local_set
+                    .run_until(async {
+                        loop {
+                            let (game_account, _) = client.get_account(game_account_id).unwrap();
+                            let phase_data = game_account
+                                .storage()
+                                .get_item(CURRENT_PHASE_SLOT)
+                                .as_elements()
+                                .to_vec();
+                            let pre_phase = phase_data[0].as_int();
+                            consume_game_notes(game_account_id).await;
+                            let (game_account, _) = client.get_account(game_account_id).unwrap();
+                            let phase_data = game_account
+                                .storage()
+                                .get_item(CURRENT_PHASE_SLOT)
+                                .as_elements()
+                                .to_vec();
+                            let phase = phase_data[0].as_int();
 
-                            match Ws_config::load(ws_config).url {
-                                Some(url) => {
-                                    ws_url = url;
+                            // if phase is not incremented post consumption, continue
+                            if pre_phase + 1 != phase {
+                                sleep(Duration::from_secs(5)).await;
+                                match pre_phase {
+                                    0 => {
+                                        let mut revealed_comm: Vec<u64> = vec![];
+                                        for i in 0..3 {
+                                            revealed_comm.push(
+                                                game_account
+                                                    .storage()
+                                                    .get_item(COMMUNITY_CARDS[i])
+                                                    .as_elements()[0]
+                                                    .as_int(),
+                                            );
+                                        }
+                                        let _ = broadcast_message(
+                                            game_account_id.clone().to_string(),
+                                            ws_url.clone(),
+                                            format!(
+                                                "Community Cards Revealed: {} {} {}",
+                                                card_from_number(revealed_comm[0]),
+                                                card_from_number(revealed_comm[1]),
+                                                card_from_number(revealed_comm[2])
+                                            ),
+                                        )
+                                        .await;
+                                    }
+
+                                    1 => {
+                                        let _ = broadcast_message(
+                                            game_account_id.clone().to_string(),
+                                            ws_url.clone(),
+                                            format!(
+                                                "Community Card Revealed: {}",
+                                                card_from_number(
+                                                    game_account
+                                                        .storage()
+                                                        .get_item(COMMUNITY_CARDS[3])
+                                                        .as_elements()[0]
+                                                        .as_int()
+                                                ),
+                                            ),
+                                        )
+                                        .await;
+                                    }
+                                    2 => {
+                                        let _ = broadcast_message(
+                                            game_account_id.clone().to_string(),
+                                            ws_url.clone(),
+                                            format!(
+                                                "Community Card Revealed: {}",
+                                                card_from_number(
+                                                    game_account
+                                                        .storage()
+                                                        .get_item(COMMUNITY_CARDS[4])
+                                                        .as_elements()[0]
+                                                        .as_int()
+                                                ),
+                                            ),
+                                        )
+                                        .await;
+                                    }
+                                    _ => (),
                                 }
-
-                                None => {
-                                    eprintln!("Ws_config DNE, use init or connect command before action");
-                                }
+                                continue;
                             }
-                            let _ = broadcast_message(
-                                game_account_id.to_string(),
-                                ws_url.clone(),
-                                format!("🥲 Game Ended ... "),
+
+                            // broadcast message if game ends
+                            if phase == 3 {
+                                let _ = broadcast_message(
+                                    game_account_id.to_string(),
+                                    ws_url.clone(),
+                                    format!("Game Ended"),
+                                )
+                                .await;
+                            }
+
+                            // if phase changes, send community cards for unmasking
+                            let player_account_id = AccountId::try_from(player_ids[0]).unwrap();
+                            let mut cards: [[Felt; 4]; 3] = [[Felt::ZERO; 4]; 3];
+                            for (i, slot) in (1..4).enumerate() {
+                                let card_digest = game_account.storage().get_item(slot);
+                                cards[i] = card_digest.into();
+                            }
+                            // send community cards
+                            send_community_cards(
+                                game_account_id,
+                                player_account_id,
+                                cards,
+                                phase as u8,
                             )
                             .await;
+                            sleep(Duration::from_secs(5)).await;
                         }
-
-                        // if phase changes, send community cards for unmasking
-                        let player_account_id = AccountId::try_from(player_ids[0]).unwrap();
-                        let mut cards: [[Felt; 4]; 3] = [[Felt::ZERO; 4]; 3];
-                        for (i, slot) in (1..4).enumerate() {
-                            let card_digest = game_account.storage().get_item(slot);
-                            cards[i] = card_digest.into();
-                        }
-                        // send community cards
-                        send_community_cards(game_account_id, player_account_id, cards, phase as u8).await;
-                        sleep(Duration::from_secs(5)).await;
-                    }
-                }).await;
+                    })
+                    .await;
                 Ok(())
             }
             Err(e) => Err(format!("Error creating game account: {}", e)),

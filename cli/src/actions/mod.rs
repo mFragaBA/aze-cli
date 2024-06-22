@@ -18,7 +18,7 @@ use miden_objects::{
     notes::NoteType,
 };
 
-use aze_lib::utils::{broadcast_message, Ws_config};
+use aze_lib::utils::{broadcast_message, read_player_data, Ws_config};
 
 pub async fn raise(
     player_id: u64,
@@ -227,7 +227,7 @@ pub async fn bet(
     let _ = broadcast_message(
         game_account_id.to_string(),
         ws_url.clone(),
-        format!("Player: {} bet amount: {}", player_id, amount),
+        format!("Player: {} bet amount: {}", read_player_data().expect("Failed to read player data from Player.toml"), amount),
     )
     .await;
 

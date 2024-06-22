@@ -16,10 +16,15 @@ use miden_objects::{
 };
 
 use crate::{
-    broadcast::CheckmoveRequest, client::{AzeAccountTemplate, AzeClient, AzeGameMethods}, constants::{
+    broadcast::CheckmoveRequest,
+    client::{AzeAccountTemplate, AzeClient, AzeGameMethods},
+    constants::{
         BUY_IN_AMOUNT, CURRENT_TURN_INDEX_SLOT, HIGHEST_BET, NO_OF_PLAYERS, PLAYER_INITIAL_BALANCE,
         SMALL_BLIND_AMOUNT, SMALL_BUY_IN_AMOUNT,
-    }, gamestate::Check_Action, notes::{consume_notes, mint_note}, storage::GameStorageSlotData
+    },
+    gamestate::Check_Action,
+    notes::{consume_notes, mint_note},
+    storage::GameStorageSlotData,
 };
 use ::rand::Rng;
 use figment::{
@@ -36,8 +41,8 @@ use miden_client::{
     errors::{ClientError, IdPrefixFetchError},
     store::{sqlite_store::SqliteStore, InputNoteRecord, NoteFilter as ClientNoteFilter, Store},
 };
-use std::path::Path;
 use std::{env::temp_dir, fs, time::Duration};
+use std::{fs::File, io::Read, path::Path};
 
 use reqwest::Client as httpClient;
 use serde::{Deserialize, Serialize};
@@ -196,6 +201,9 @@ pub struct StatResponse {
     pub player_balances: Vec<u64>,
     pub current_player: u64,
     pub pot_value: u64,
+    pub player_hands: Vec<u64>,
+    pub current_state: u64,
+    pub player_hand_cards: Vec<Vec<u64>>
 }
 
 // Config for saving broadcast url
@@ -224,23 +232,23 @@ impl Ws_config {
     }
 }
 
-pub async fn broadcast_message(game_id: String, url: String, message: String) -> Result<(), Box<dyn Error>> {
+pub async fn broadcast_message(
+    game_id: String,
+    url: String,
+    message: String,
+) -> Result<(), Box<dyn Error>> {
     let client = httpClient::new();
     let url = url::Url::parse(&url).unwrap();
     let base_url = format!("http://{}", url.host_str().unwrap());
     let port = url.port().map(|p| format!(":{}", p)).unwrap_or_default();
     let publish_url = format!("{}{}{}", base_url, port, "/publish");
-    
+
     let request_body = PublishRequest {
         game_id,
         event: message,
     };
 
-    let response = client
-        .post(&publish_url)
-        .json(&request_body)
-        .send()
-        .await?;
+    let response = client.post(&publish_url).json(&request_body).send().await?;
 
     if response.status().is_success() {
         println!("Message successfully published");
@@ -253,26 +261,20 @@ pub async fn broadcast_message(game_id: String, url: String, message: String) ->
     }
 }
 
-pub async fn get_stats(game_id: String, url: String) -> Result<StatResponse, Box<dyn Error>>{
+pub async fn get_stats(game_id: String, url: String) -> Result<StatResponse, Box<dyn Error>> {
     let client = httpClient::new();
     let url = url::Url::parse(&url).unwrap();
     let base_url = format!("http://{}", url.host_str().unwrap());
     let port = url.port().map(|p| format!(":{}", p)).unwrap_or_default();
     let stat_url = format!("{}{}{}", base_url, port, "/stats");
 
-    let request_body = StatRequest {
-        game_id
-    };
+    let request_body = StatRequest { game_id };
 
-    let response = client
-        .post(&stat_url)
-        .json(&request_body)
-        .send()
-        .await?;
+    let response = client.post(&stat_url).json(&request_body).send().await?;
 
     if response.status().is_success() {
-        Ok(response.json().await? )
-    }else {
+        Ok(response.json().await?)
+    } else {
         let status = response.status();
         let error_text = response.text().await?;
         eprintln!("Failed to get stats: {} - {}", status, error_text);
@@ -280,30 +282,64 @@ pub async fn get_stats(game_id: String, url: String) -> Result<StatResponse, Box
     }
 }
 
-pub async fn validate_action(action: Check_Action, url: String, player_id: u64) -> Result<bool, Box<dyn Error>>{
+pub async fn validate_action(
+    action: Check_Action,
+    url: String,
+    player_id: u64,
+) -> Result<bool, Box<dyn Error>> {
     let client = httpClient::new();
     let url = url::Url::parse(&url).unwrap();
     let base_url = format!("http://{}", url.host_str().unwrap());
     let port = url.port().map(|p| format!(":{}", p)).unwrap_or_default();
     let stat_url = format!("{}{}{}", base_url, port, "/checkmove");
 
-    let request_body = CheckmoveRequest {
-        player_id,
-        action
-    };
+    let request_body = CheckmoveRequest { player_id, action };
 
-    let response = client
-        .post(&stat_url)
-        .json(&request_body)
-        .send()
-        .await?;
+    let response = client.post(&stat_url).json(&request_body).send().await?;
 
     if response.status().is_success() {
         Ok(response.json::<Vec<bool>>().await?[0])
-    }else {
+    } else {
         let status = response.status();
         let error_text = response.text().await?;
         eprintln!("Failed to check move: {} - {}", status, error_text);
         Err(format!("Failed to check move: {} - {}", status, error_text).into())
     }
+}
+
+#[derive(Deserialize)]
+struct Player {
+    player_id: u64,
+    identifier: String,
+}
+
+// get player identifier
+pub fn read_player_data() -> Option<String> {
+    let mut file = File::open(Path::new("Player.toml")).ok()?;
+    let mut content = String::new();
+    file.read_to_string(&mut content).ok()?;
+    let player_info: Player = Toml::from_str(&content).ok()?;
+    Some(player_info.identifier)
+}
+
+
+pub fn card_from_number(num: u64) -> String {
+    if num == 0 {
+        return String::from("NA");
+    }
+
+    let suits = ["♣", "♦", "♥", "♠"];
+
+    let suit_index = (num - 1) / 13;
+    let suit = suits[suit_index as usize];
+
+    let rank = match (num - 1) % 13 + 1 {
+        1 => "A".to_string(),
+        11 => "J".to_string(),
+        12 => "Q".to_string(),
+        13 => "K".to_string(),
+        n => n.to_string(),
+    };
+
+    format!("{}{}", rank, suit)
 }

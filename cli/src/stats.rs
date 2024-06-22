@@ -1,7 +1,10 @@
 use std::path::PathBuf;
 
 use ansi_term::Colour::{Blue, Green, Red, Yellow};
-use aze_lib::{client::{create_aze_client, AzeClient}, utils::{get_stats, Ws_config}};
+use aze_lib::{
+    client::{create_aze_client, AzeClient},
+    utils::{card_from_number, get_stats, Ws_config},
+};
 use clap::Parser;
 use dialoguer::Input;
 use miden_objects::accounts::AccountId;
@@ -21,15 +24,15 @@ impl StatsCmd {
         let game_account_id = AccountId::try_from(gameid).unwrap();
         let game_account = client.get_account(game_account_id).unwrap().0;
         let ws_url = Ws_config::load(ws_config).url.unwrap();
-        let stat_data: aze_lib::utils::StatResponse = get_stats(game_account_id.to_string(), ws_url).await?;
-        
+        let stat_data: aze_lib::utils::StatResponse =
+            get_stats(game_account_id.to_string(), ws_url).await?;
 
         let poker_table = format!(
             "{}\n\
              {}\n\
              {}\n\
              {}\n\
-             {} {} {} {} {}\n\
+             {}\n\
              {}\n\
              {}\n\
              {}\n\
@@ -41,44 +44,58 @@ impl StatsCmd {
              {}\n\
              {}\n\
              {}",
-            Blue.bold().paint("+-----------------------------+"),
-            Blue.bold().paint("|        Poker Table          |"),
-            Blue.bold().paint("+-----------------------------+"),
-            Blue.bold().paint("|        Community Cards      |"),
-            Blue.bold().paint("|    "),
-            Red.bold().paint("  10♠ "),
-            Green.bold().paint("  J♣ "),
-            Red.bold().paint("  Q♥ "),
-            Blue.bold().paint("     |"),
-            Blue.bold().paint("+-----------------------------+"),
-            Yellow
-                .bold()
-                .paint(format!("|   P1                 P2     |")),
-            Yellow.bold().paint(format!(
-                "|   {:04}               {:04}   |",
-                stat_data.player_balances[0], stat_data.player_balances[1]
+            Blue.bold()
+                .paint("+---------------------------------------------------+"),
+            Red.bold()
+                .paint("|                   POKER TABLE                     |"),
+            Blue.bold()
+                .paint("|---------------------------------------------------|"),
+            Blue.bold()
+                .paint("|                 COMMUNITY CARDS                   |"),
+            Blue.bold().paint(format!(
+                "|------ {:^37} ------|",
+                format!(
+                    "{:4} {:4} {:4} {:4} {:4}",
+                    card_from_number(stat_data.community_cards[0]),
+                    card_from_number(stat_data.community_cards[1]),
+                    card_from_number(stat_data.community_cards[2]),
+                    card_from_number(stat_data.community_cards[3]),
+                    card_from_number(stat_data.community_cards[4])
+                )
             )),
-            Blue.bold().paint("+-----------------------------+"),
+            Blue.bold().paint("|---------------------------------------------------|"),
             Yellow
                 .bold()
-                .paint(format!("|        Pot: {:04}            |", stat_data.pot_value)),
-            Blue.bold().paint("+-----------------------------+"),
-            Yellow
-                .bold()
-                .paint(format!("|   P3                 P4     |")),
+                .paint(format!("|     {:^20} {:^20}     |", "P1", "P2")),
             Yellow.bold().paint(format!(
-                "|   {:04}               {:04}   |",
-                stat_data.player_balances[2], stat_data.player_balances[3]
+                "|     {:^20} {:^20}     |",
+                format!("Balance: {}",stat_data.player_balances[0]), format!("Balance: {}",stat_data.player_balances[1])
             )),
-            Blue.bold().paint("+-----------------------------+"),
+            Blue.bold()
+                .paint("|---------------------------------------------------|"),
+            Yellow.bold().paint(format!(
+                "|          {:^31}          |",
+                format!("POT VALUE: {}", stat_data.pot_value)
+            )),
+            Blue.bold()
+                .paint("|---------------------------------------------------|"),
             Yellow
                 .bold()
-                .paint(format!("|  Turn: {:018}   | ", stat_data.current_player)),
-            Blue.bold().paint("+-----------------------------+")
+                .paint(format!("|     {:^20} {:^20}     |", "P1", "P2")),
+            Yellow.bold().paint(format!(
+                "|     {:^20} {:^20}     |",
+                format!("Balance: {}",stat_data.player_balances[2]), format!("Balance: {}",stat_data.player_balances[3])
+            )),
+            Blue.bold()
+                .paint("|---------------------------------------------------|"),
+            Yellow
+                .bold()
+                .paint(format!("|          {:^31}          |", format!("Turn: {}",stat_data.current_player))),
+            Blue.bold()
+                .paint("+---------------------------------------------------+")
         );
 
         println!("{}", poker_table);
-
         Ok(())
     }
 }

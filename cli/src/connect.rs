@@ -5,6 +5,7 @@ use futures_util::{StreamExt, SinkExt}; // Import the required traits
 use tokio_tungstenite::connect_async;
 use tokio_tungstenite::tungstenite::protocol::Message;
 use aze_lib::utils::Ws_config;
+use ansi_term::Colour::{Blue, Green, Red, Yellow};
 
 #[derive(Debug, Clone, Parser)]
 pub struct ConnectCmd {
@@ -27,12 +28,11 @@ impl ConnectCmd {
         while let Some(message) = read.next().await {
             match message {
                 Ok(msg) => match msg {
-                    Message::Text(text) => println!("Received message: {}", text),
-                    Message::Binary(bin) => println!("Received binary message: {:?}", bin),
+                    Message::Text(text) => println!("{} {}", Yellow.bold().paint("Game Update: "), text),
                     _ => (),
                 },
                 Err(e) => {
-                    eprintln!("Error receiving message: {}", e);
+                    eprintln!("{}", Red.bold().paint(format!("Error receiving message: {}", e)));
                     break;
                 }
             }
