@@ -17,6 +17,7 @@ const.CURRENT_PHASE=62 # whole game is divided into 4 phases
 const.PLAYER_CHECK_COUNTER=63 
 const.FIRST_PLAYER_INDEX=64
 const.CARDS_SLOTS=52
+const.HAND_OFFSET=11
 
 # game events 
 # TODO: fix some storage for the value corresponding to these events 
@@ -705,8 +706,33 @@ export.tx_state_change
     dropw dropw
 end
 
+export.get_hand_index
+    mem_store.0
+    push.FIRST_PLAYER_INDEX swap drop
+    push.1
+    while.true
+        dup exec.account::get_item drop drop drop
+        # => [account_id, player_index_slot]
+        mem_load.0
+        # => [consumer_id, account_id, player_index_slot]
+        eq
+        
+        if.true
+            push.HAND_OFFSET add
+            push.0
+            # => [0, current_player_hand_index]
+        else
+            push.PLAYER_STATS_SLOTS add
+            push.1
+        end
+    end
+    movupw.3 dropw
+    # => [current_player_hand_index]
+end
+
 export.basic_wallet::receive_asset
 export.basic_wallet::send_asset
 export.basic::auth_tx_rpo_falcon512
 export.account::get_item
+export.account::get_id
 export.tx::create_note

@@ -1,5 +1,5 @@
 use crate::client::AzeClient;
-use crate::constants::{ BUY_IN_AMOUNT, TRANSFER_AMOUNT, FLOP_NO_OF_CARDS };
+use crate::constants::{ BUY_IN_AMOUNT, TRANSFER_AMOUNT, FLOP_NO_OF_CARDS, SUIT_SIZE };
 use crate::executor::execute_tx_and_sync;
 use miden_client::client::Client;
 use miden_client::{
@@ -480,13 +480,14 @@ pub fn create_set_hand_note<
     mut rng: RpoRandomCoin,
     cards: [[Felt; 4]; 2],
     player_hand: u8,
-    player_index: u8,
 ) -> Result<Note, NoteError> {
     let note_script = include_str!("../../contracts/notes/game/set_hand.masm");
     let script_ast = ProgramAst::parse(note_script).unwrap();
     let note_script = client.compile_note_script(script_ast, vec![]).unwrap();
 
-    let inputs = vec![cards[0][0], cards[1][0], Felt::from(player_hand), Felt::from(player_index)];
+    let card1 = SUIT_SIZE * (cards[0][0].as_int() - 1) + cards[0][1].as_int();
+    let card2 = SUIT_SIZE * (cards[1][0].as_int() - 1) + cards[1][1].as_int();
+    let inputs = vec![Felt::new(card1), Felt::new(card2), Felt::from(player_hand)];
 
     let note_inputs = NoteInputs::new(inputs).unwrap();
     let tag = NoteTag::from_account_id(target_account_id, NoteExecutionHint::Local)?;

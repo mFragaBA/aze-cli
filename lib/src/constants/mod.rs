@@ -16,6 +16,7 @@ pub const PLAYER_INITIAL_BALANCE: u8 = 30;
 pub const HIGHEST_BET: u8 = SMALL_BLIND_AMOUNT;
 pub const NO_OF_PLAYERS: u8 = 4;
 pub const FLOP_NO_OF_CARDS: u8 = 3;
+pub const SUIT_SIZE: u64 = 13;
 pub const FLOP_INDEX: u8 = NO_OF_PLAYERS * 2 + 1;
 pub const PLAYER_BET_OFFSET: u8 = 3;
 pub const IS_FOLD_OFFSET: u8 = 10;

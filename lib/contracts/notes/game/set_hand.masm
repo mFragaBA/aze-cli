@@ -15,23 +15,49 @@ proc.set_hand
     dropw dropw
 end
 
-begin 
-    dropw
-    # store index
-    push.0 exec.note::get_inputs drop
-    # => [des_pointer]
+proc.get_hand_index
+    mem_store.0
+    push.FIRST_PLAYER_INDEX swap drop
+    push.1
+    while.true
+        dup exec.account::get_item drop drop drop
+        # => [account_id, player_index_slot]
+        mem_load.0
+        # => [consumer_id, account_id, player_index_slot]
+        eq
+        
+        if.true
+            push.HAND_OFFSET add
+            push.0
+            # => [0, current_player_hand_index]
+        else
+            push.PLAYER_STATS_SLOTS add
+            push.1
+        end
+    end
+    movupw.3 dropw
+    # => [current_player_hand_index]
+end
 
-    # card_index
-    mem_loadw
-    # => [player_index, player_hand, Card2, Card1]
-    # Calculate current_player_index = 64 + 13 * player_index + 0
-    push.PLAYER_STATS_SLOTS mul
-    push.FIRST_PLAYER_INDEX add
-    push.HAND_OFFSET add
-    # => [current_player_hand_index, player_hand, Card2, Card1]
+begin
+    dropw
+    # get account_id
+    exec.note::get_sender
+    call.get_hand_index mem_store.2
+    # => []
+
+    # store index
+    exec.note::get_inputs drop
+    # => [des_pointer]
+    mem_store.1 
+    movupw.3 dropw
+    # => []
     
+    mem_load.1 mem_loadw drop
+    # => [hand, card2, card1]
+    mem_load.2
     call.set_hand
     # => [...]
 
-    dropw dropw
+    dropw dropw dropw
 end
