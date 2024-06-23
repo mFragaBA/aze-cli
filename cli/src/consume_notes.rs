@@ -24,13 +24,9 @@ impl ConsumeNotesCmd {
     pub async fn execute(&self) -> Result<(), String> {
         let mut client: AzeClient = create_aze_client();
         let account_id = AccountId::try_from(self.player_id).unwrap();
-        let local_set = LocalSet::new();
-        local_set.run_until(async {
-            loop {
-                consume_game_notes(account_id).await;
-                sleep(Duration::from_secs(5)).await;
-            }
-        }).await;
+        // let local_set = LocalSet::new();
+        consume_game_notes(account_id).await;
+        println!("Notes consumed");
         Ok(())
     }
 }

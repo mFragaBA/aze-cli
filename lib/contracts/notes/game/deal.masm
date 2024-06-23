@@ -1,9 +1,6 @@
-# Try to code an easy note script
-
 use.miden::account
 use.miden::note
 use.miden::contracts::wallets::basic->wallet
-use.miden::contracts::poker::poker
 
 proc.receive_cards
     exec.account::set_item
@@ -30,6 +27,7 @@ begin
 
     # Reduce stack size before calling procedure
     movupw.3 dropw 
+
     push.101 call.receive_cards 
     # => [...]
 

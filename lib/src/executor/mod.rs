@@ -14,19 +14,21 @@ pub async fn execute_tx_and_sync(client: &mut AzeClient, tx_request: Transaction
     let transaction_execution_result = match client.new_transaction(tx_request.clone()) {
         Ok(result) => result,
         Err(e) => {
+            println!("Error creating transaction: {:?}", e);
             return;
         }
     };
+    println!("Haven't submitted txn");
     let transaction_id = transaction_execution_result.executed_transaction().id();
 
     client
         .submit_transaction(transaction_execution_result)
         .await
         .unwrap();
-
     // wait until tx is committed
     loop {
         client.sync_state().await.unwrap();
+        println!("Seems like note is consumed");
 
         // Check if executed transaction got committed by the node
         let uncommited_transactions = client
