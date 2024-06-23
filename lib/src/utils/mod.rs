@@ -20,7 +20,7 @@ use crate::{
     client::{AzeAccountTemplate, AzeClient, AzeGameMethods},
     constants::{
         BUY_IN_AMOUNT, CURRENT_TURN_INDEX_SLOT, HIGHEST_BET, NO_OF_PLAYERS, PLAYER_INITIAL_BALANCE,
-        SMALL_BLIND_AMOUNT, SMALL_BUY_IN_AMOUNT,
+        SMALL_BLIND_AMOUNT, SMALL_BUY_IN_AMOUNT, PLAYER_FILE_PATH
     },
     gamestate::Check_Action,
     notes::{consume_notes, mint_note},
@@ -241,15 +241,35 @@ pub async fn validate_action(
     }
 }
 
-#[derive(Deserialize)]
-struct Player {
+#[derive(Serialize, Deserialize)]
+pub struct Player {
     player_id: u64,
     identifier: String,
+    game_id: Option<u64>,
+}
+
+impl Player {
+    pub fn new(player_id: u64, identifier: String, game_id: Option<u64>) -> Self {
+        Player {
+            player_id,
+            identifier,
+            game_id,
+        }
+    }
+    pub fn player_id(&self) -> u64 {
+        self.player_id
+    }
+    pub fn identifier(&self) -> String {
+        self.identifier.clone()
+    }
+    pub fn game_id(&self) -> Option<u64> {
+        self.game_id
+    }
 }
 
 // get player identifier
 pub fn read_player_data() -> Option<String> {
-    let mut file = File::open(Path::new("Player.toml")).ok()?;
+    let mut file = File::open(Path::new(PLAYER_FILE_PATH)).ok()?;
     let mut content = String::new();
     file.read_to_string(&mut content).ok()?;
     let player_info: Player = Toml::from_str(&content).ok()?;

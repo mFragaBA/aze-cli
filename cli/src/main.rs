@@ -3,7 +3,7 @@ mod action;
 mod actions;
 mod commit_hand;
 mod connect;
-mod consume_notes;
+mod receive_cards;
 mod init;
 mod peek_hand;
 mod register;
@@ -11,7 +11,7 @@ mod see_hands;
 mod stats;
 use self::{
     action::ActionCmd, commit_hand::CommitHandCmd, connect::ConnectCmd,
-    consume_notes::ConsumeNotesCmd, init::InitCmd, peek_hand::PeekHandCmd, register::RegisterCmd,
+    receive_cards::ReceiveCardsCmd, init::InitCmd, peek_hand::PeekHandCmd, register::RegisterCmd,
     see_hands::SeeHandsCmd, stats::StatsCmd,
 };
 use clap::Parser;
@@ -26,7 +26,7 @@ struct Args {
 #[derive(Parser, Debug, Clone)]
 enum Commands {
     Action(ActionCmd),
-    ConsumeNotes(ConsumeNotesCmd),
+    ReceiveCards(ReceiveCardsCmd),
     Init(InitCmd),
     PeekHand(PeekHandCmd),
     Register(RegisterCmd),
@@ -46,8 +46,8 @@ async fn main() {
                 println!("{}", error);
             }
         }
-        Commands::ConsumeNotes(consume_notes_cmd) => {
-            if let Err(error) = consume_notes_cmd.execute().await {
+        Commands::ReceiveCards(receive_cards_cmd) => {
+            if let Err(error) = receive_cards_cmd.execute().await {
                 println!("{}", error);
             }
         }
