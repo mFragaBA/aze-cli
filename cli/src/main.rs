@@ -9,7 +9,6 @@ mod peek_hand;
 mod register;
 mod see_hands;
 mod stats;
-mod utils;
 use self::{
     action::ActionCmd, commit_hand::CommitHandCmd, connect::ConnectCmd,
     consume_notes::ConsumeNotesCmd, init::InitCmd, peek_hand::PeekHandCmd, register::RegisterCmd,

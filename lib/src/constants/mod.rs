@@ -6,7 +6,7 @@ pub const DEFAULT_AUTH_SCRIPT: &str = "
     end
 ";
 
-pub const FAUCET_ACCOUNT_ID: u64 = 2453430428770133747;
+pub const AUTH_SEND_NOTE_SCRIPT: &str = include_str!("../../asm/tx_scripts/auth_send_note.masm");
 pub const CLIENT_CONFIG_FILE_NAME: &str = "miden-client.toml";
 pub const BUY_IN_AMOUNT: u64 = 1000;
 pub const SMALL_BUY_IN_AMOUNT: u8 = 1;

@@ -121,12 +121,5 @@ begin
     # => [p4, p3, p2, action_type]
     call.set_player_data
 
-    exec.note::get_assets drop mem_loadw
-    # => [ASSET, ...]
-
-    # load the asset and add it to the account
-    call.wallet::receive_asset
-    # => [...]
-
-    dropw
+    dropw dropw
 end

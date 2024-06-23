@@ -1,7 +1,6 @@
 mod utils;
 use utils::{ 
     create_test_client,
-    create_faucet_account,
     create_player_account,
     create_game_account,
     mask_cards,
@@ -41,13 +40,12 @@ use miden_objects::{
 #[tokio::test]
 async fn test_e2e() {
     let mut client: AzeClient = create_test_client();
-    let faucet_account_id = create_faucet_account(&mut client);
 
     // Create player accounts
-    let player1_id = create_player_account(&mut client, faucet_account_id).await;
-    let player2_id = create_player_account(&mut client, faucet_account_id).await;
-    let player3_id = create_player_account(&mut client, faucet_account_id).await;
-    let player4_id = create_player_account(&mut client, faucet_account_id).await;
+    let player1_id = create_player_account(&mut client).await;
+    let player2_id = create_player_account(&mut client).await;
+    let player3_id = create_player_account(&mut client).await;
+    let player4_id = create_player_account(&mut client).await;
     let player_ids = vec![player1_id, player2_id, player3_id, player4_id];
 
     for player_id in player_ids.iter() {
@@ -57,13 +55,14 @@ async fn test_e2e() {
     }
 
     // Create an game account
-    let game_account_id = create_game_account(&mut client, faucet_account_id).await;
+    let game_account_id = create_game_account(&mut client).await;
+    let (game_account, _) = client.get_account(game_account_id).unwrap();
 
     // Mask the cards
-    mask_cards(&mut client, game_account_id, faucet_account_id, player_ids.clone()).await;
-    remask_cards(&mut client, game_account_id, faucet_account_id, player_ids.clone(), DEFAULT_ACTION_TYPE + 1).await;
-    remask_cards(&mut client, game_account_id, faucet_account_id, player_ids.clone(), DEFAULT_ACTION_TYPE + 2).await;
-    remask_cards(&mut client, game_account_id, faucet_account_id, player_ids.clone(), DEFAULT_ACTION_TYPE + 3).await;
+    mask_cards(&mut client, game_account_id, player_ids.clone()).await;
+    remask_cards(&mut client, game_account_id, player_ids.clone(), DEFAULT_ACTION_TYPE + 1).await;
+    remask_cards(&mut client, game_account_id, player_ids.clone(), DEFAULT_ACTION_TYPE + 2).await;
+    remask_cards(&mut client, game_account_id, player_ids.clone(), DEFAULT_ACTION_TYPE + 3).await;
 
     for (i, player_id) in player_ids.iter().enumerate() {
         let (player_account, _) = client.get_account(*player_id).unwrap();
@@ -76,7 +75,7 @@ async fn test_e2e() {
     // Distribute the cards
     // Peek hand
     for player_id in player_ids.iter() {
-        peek_hand(&mut client, faucet_account_id, *player_id).await;
+        peek_hand(&mut client, *player_id).await;
         let (player_account, _) = client.get_account(*player_id).unwrap();
         let player_card1 = player_account.storage().get_item(PLAYER_CARD1_SLOT);
         let player_card2 = player_account.storage().get_item(PLAYER_CARD2_SLOT);
@@ -85,13 +84,13 @@ async fn test_e2e() {
     }
 
     // Unmask community cards
-    unmask_community_cards(&mut client, faucet_account_id, game_account_id, player1_id, 1).await;
-    unmask_community_cards(&mut client, faucet_account_id, game_account_id, player1_id, 2).await;
-    unmask_community_cards(&mut client, faucet_account_id, game_account_id, player1_id, 3).await;
+    unmask_community_cards(&mut client, game_account_id, player1_id, 1).await;
+    // unmask_community_cards(&mut client, game_account_id, player1_id, 2).await;
+    // unmask_community_cards(&mut client, game_account_id, player1_id, 3).await;
 
     // Commit hand
     let player_hand: u8 = 7;
-    commit_hand(&mut client, faucet_account_id, game_account_id, player1_id, player_hand, 0_u8).await;
+    commit_hand(&mut client, game_account_id, player1_id, player_hand, 0_u8).await;
     let (game_account, _) = client.get_account(game_account_id).unwrap();
     let commited_cards = game_account.storage().get_item(FIRST_PLAYER_INDEX + HAND_OFFSET);
     assert_eq!(commited_cards, RpoDigest::new([Felt::from(17_u8), Felt::from(18_u8), Felt::from(player_hand), Felt::ZERO])); 

@@ -34,7 +34,6 @@ pub fn create_send_card_note<
     client: &mut Client<N, R, S, A>,
     sender_account_id: AccountId,
     target_account_id: AccountId,
-    assets: Vec<Asset>,
     note_type: NoteType,
     mut rng: RpoRandomCoin,
     cards: [[Felt; 4]; 2],
@@ -57,7 +56,7 @@ pub fn create_send_card_note<
 
     // TODO: For now hardcoding notes to be public, + Also find out what encrypted notes means
     let metadata = NoteMetadata::new(sender_account_id, NoteType::Public, tag, aux)?;
-    let vault = NoteAssets::new(assets)?;
+    let vault = NoteAssets::new(vec![])?;
     let recipient = NoteRecipient::new(serial_num, note_script, note_inputs);
 
     Ok(Note::new(vault, metadata, recipient))
@@ -72,7 +71,6 @@ pub fn create_key_gen_note<
     client: &mut Client<N, R, S, A>,
     sender_account_id: AccountId,
     target_account_id: AccountId,
-    assets: Vec<Asset>,
     note_type: NoteType,
     mut rng: RpoRandomCoin,
 ) -> Result<Note, NoteError> {
@@ -88,7 +86,7 @@ pub fn create_key_gen_note<
 
     // TODO: For now hardcoding notes to be public, + Also find out what encrypted notes means
     let metadata = NoteMetadata::new(sender_account_id, NoteType::Public, tag, aux)?;
-    let vault = NoteAssets::new(assets)?;
+    let vault = NoteAssets::new(vec![])?;
     let recipient = NoteRecipient::new(serial_num, note_script, note_inputs);
 
     Ok(Note::new(vault, metadata, recipient))
@@ -98,7 +96,6 @@ pub fn create_shuffle_card_note<R: FeltRng, N: NodeRpcClient, S: Store, A: Trans
     client: &mut Client<N, R, S, A>,
     sender_account_id: AccountId,
     target_account_id: AccountId,
-    assets: Vec<Asset>,
     note_type: NoteType,
     mut rng: RpoRandomCoin,
     player_data: [u64; 4],
@@ -121,7 +118,7 @@ pub fn create_shuffle_card_note<R: FeltRng, N: NodeRpcClient, S: Store, A: Trans
     let aux = ZERO;
 
     let metadata = NoteMetadata::new(sender_account_id, NoteType::Public, tag, aux)?;
-    let vault = NoteAssets::new(assets)?;
+    let vault = NoteAssets::new(vec![])?;
     let recipient = NoteRecipient::new(serial_num, note_script, note_inputs);
 
     Ok(Note::new(vault, metadata, recipient))
@@ -131,7 +128,6 @@ pub fn create_remask_note<R: FeltRng, N: NodeRpcClient, S: Store, A: Transaction
     client: &mut Client<N, R, S, A>,
     sender_account_id: AccountId,
     target_account_id: AccountId,
-    assets: Vec<Asset>,
     note_type: NoteType,
     mut rng: RpoRandomCoin,
     cards: [[Felt; 4]; 52],
@@ -156,7 +152,7 @@ pub fn create_remask_note<R: FeltRng, N: NodeRpcClient, S: Store, A: Transaction
     let aux = ZERO;
 
     let metadata = NoteMetadata::new(sender_account_id, NoteType::Public, tag, aux)?;
-    let vault = NoteAssets::new(assets)?;
+    let vault = NoteAssets::new(vec![])?;
     let recipient = NoteRecipient::new(serial_num, note_script, note_inputs);
 
     Ok(Note::new(vault, metadata, recipient))
@@ -166,7 +162,6 @@ pub fn create_play_bet_note<R: FeltRng, N: NodeRpcClient, S: Store, A: Transacti
     client: &mut Client<N, R, S, A>,
     sender_account_id: AccountId,
     target_account_id: AccountId,
-    assets: Vec<Asset>,
     note_type: NoteType,
     mut rng: RpoRandomCoin,
     player_bet: u8,
@@ -182,7 +177,7 @@ pub fn create_play_bet_note<R: FeltRng, N: NodeRpcClient, S: Store, A: Transacti
     let aux = ZERO;
 
     let metadata = NoteMetadata::new(sender_account_id, NoteType::Public, tag, aux)?;
-    let vault = NoteAssets::new(assets)?;
+    let vault = NoteAssets::new(vec![])?;
     let recipient = NoteRecipient::new(serial_num, note_script, note_inputs);
 
     Ok(Note::new(vault, metadata, recipient))
@@ -197,7 +192,6 @@ pub fn create_play_raise_note<
     client: &mut Client<N, R, S, A>,
     sender_account_id: AccountId,
     target_account_id: AccountId,
-    assets: Vec<Asset>,
     note_type: NoteType,
     mut rng: RpoRandomCoin,
     player_bet: u8,
@@ -213,7 +207,7 @@ pub fn create_play_raise_note<
     let aux = ZERO;
 
     let metadata = NoteMetadata::new(sender_account_id, NoteType::Public, tag, aux)?;
-    let vault = NoteAssets::new(assets)?;
+    let vault = NoteAssets::new(vec![])?;
     let recipient = NoteRecipient::new(serial_num, note_script, note_inputs);
 
     Ok(Note::new(vault, metadata, recipient))
@@ -228,7 +222,6 @@ pub fn create_play_call_note<
     client: &mut Client<N, R, S, A>,
     sender_account_id: AccountId,
     target_account_id: AccountId,
-    assets: Vec<Asset>,
     note_type: NoteType,
     mut rng: RpoRandomCoin,
 ) -> Result<Note, NoteError> {
@@ -242,7 +235,7 @@ pub fn create_play_call_note<
     let aux = ZERO;
 
     let metadata = NoteMetadata::new(sender_account_id, NoteType::Public, tag, aux)?;
-    let vault = NoteAssets::new(assets)?;
+    let vault = NoteAssets::new(vec![])?;
     let recipient = NoteRecipient::new(serial_num, note_script, note_inputs);
 
     Ok(Note::new(vault, metadata, recipient))
@@ -257,7 +250,6 @@ pub fn create_play_fold_note<
     client: &mut Client<N, R, S, A>,
     sender_account_id: AccountId,
     target_account_id: AccountId,
-    assets: Vec<Asset>,
     note_type: NoteType,
     mut rng: RpoRandomCoin,
 ) -> Result<Note, NoteError> {
@@ -271,7 +263,7 @@ pub fn create_play_fold_note<
     let aux = ZERO;
 
     let metadata = NoteMetadata::new(sender_account_id, NoteType::Public, tag, aux)?;
-    let vault = NoteAssets::new(assets)?;
+    let vault = NoteAssets::new(vec![])?;
     let recipient = NoteRecipient::new(serial_num, note_script, note_inputs);
 
     Ok(Note::new(vault, metadata, recipient))
@@ -286,7 +278,6 @@ pub fn create_play_check_note<
     client: &mut Client<N, R, S, A>,
     sender_account_id: AccountId,
     target_account_id: AccountId,
-    assets: Vec<Asset>,
     note_type: NoteType,
     mut rng: RpoRandomCoin,
 ) -> Result<Note, NoteError> {
@@ -300,7 +291,7 @@ pub fn create_play_check_note<
     let aux = ZERO;
 
     let metadata = NoteMetadata::new(sender_account_id, NoteType::Public, tag, aux)?;
-    let vault = NoteAssets::new(assets)?;
+    let vault = NoteAssets::new(vec![])?;
     let recipient = NoteRecipient::new(serial_num, note_script, note_inputs);
 
     Ok(Note::new(vault, metadata, recipient))
@@ -315,7 +306,6 @@ pub fn create_set_cards_note<
     client: &mut Client<N, R, S, A>,
     sender_account_id: AccountId,
     target_account_id: AccountId,
-    assets: Vec<Asset>,
     note_type: NoteType,
     mut rng: RpoRandomCoin,
     cards: [[Felt; 4]; 52],
@@ -337,7 +327,7 @@ pub fn create_set_cards_note<
     let aux = ZERO;
 
     let metadata = NoteMetadata::new(sender_account_id, NoteType::Public, tag, aux)?;
-    let vault = NoteAssets::new(assets)?;
+    let vault = NoteAssets::new(vec![])?;
     let recipient = NoteRecipient::new(serial_num, note_script, note_inputs);
 
     Ok(Note::new(vault, metadata, recipient))
@@ -352,7 +342,6 @@ pub fn create_set_community_cards_note<
     client: &mut Client<N, R, S, A>,
     sender_account_id: AccountId,
     target_account_id: AccountId,
-    assets: Vec<Asset>,
     note_type: NoteType,
     mut rng: RpoRandomCoin,
     cards: [[Felt; 4]; 3],
@@ -374,7 +363,7 @@ pub fn create_set_community_cards_note<
     let aux = ZERO;
 
     let metadata = NoteMetadata::new(sender_account_id, NoteType::Public, tag, aux)?;
-    let vault = NoteAssets::new(assets)?;
+    let vault = NoteAssets::new(vec![])?;
     let recipient = NoteRecipient::new(serial_num, note_script, note_inputs);
 
     Ok(Note::new(vault, metadata, recipient))
@@ -384,7 +373,6 @@ pub fn create_send_unmasked_cards_note<R: FeltRng, N: NodeRpcClient, S: Store, A
     client: &mut Client<N, R, S, A>,
     sender_account_id: AccountId,
     target_account_id: AccountId,
-    assets: Vec<Asset>,
     note_type: NoteType,
     mut rng: RpoRandomCoin,
     cards: [[Felt; 4]; 3],
@@ -404,7 +392,7 @@ pub fn create_send_unmasked_cards_note<R: FeltRng, N: NodeRpcClient, S: Store, A
     let aux = ZERO;
 
     let metadata = NoteMetadata::new(sender_account_id, NoteType::Public, tag, aux)?;
-    let vault = NoteAssets::new(assets)?;
+    let vault = NoteAssets::new(vec![])?;
     let recipient = NoteRecipient::new(serial_num, note_script, note_inputs);
 
     Ok(Note::new(vault, metadata, recipient))
@@ -414,7 +402,6 @@ pub fn create_unmask_note<R: FeltRng, N: NodeRpcClient, S: Store, A: Transaction
     client: &mut Client<N, R, S, A>,
     sender_account_id: AccountId,
     target_account_id: AccountId,
-    assets: Vec<Asset>,
     note_type: NoteType,
     mut rng: RpoRandomCoin,
     cards: [[Felt; 4]; 3],
@@ -437,7 +424,7 @@ pub fn create_unmask_note<R: FeltRng, N: NodeRpcClient, S: Store, A: Transaction
     let aux = ZERO;
 
     let metadata = NoteMetadata::new(sender_account_id, NoteType::Public, tag, aux)?;
-    let vault = NoteAssets::new(assets)?;
+    let vault = NoteAssets::new(vec![])?;
     let recipient = NoteRecipient::new(serial_num, note_script, note_inputs);
 
     Ok(Note::new(vault, metadata, recipient))
@@ -452,7 +439,6 @@ pub fn create_inter_unmask_note<
     client: &mut Client<N, R, S, A>,
     sender_account_id: AccountId,
     target_account_id: AccountId,
-    assets: Vec<Asset>,
     note_type: NoteType,
     mut rng: RpoRandomCoin,
     cards: [[Felt; 4]; 3],
@@ -475,7 +461,7 @@ pub fn create_inter_unmask_note<
     let aux = ZERO;
 
     let metadata = NoteMetadata::new(sender_account_id, NoteType::Public, tag, aux)?;
-    let vault = NoteAssets::new(assets)?;
+    let vault = NoteAssets::new(vec![])?;
     let recipient = NoteRecipient::new(serial_num, note_script, note_inputs);
 
     Ok(Note::new(vault, metadata, recipient))
@@ -490,7 +476,6 @@ pub fn create_set_hand_note<
     client: &mut Client<N, R, S, A>,
     sender_account_id: AccountId,
     target_account_id: AccountId,
-    assets: Vec<Asset>,
     note_type: NoteType,
     mut rng: RpoRandomCoin,
     cards: [[Felt; 4]; 2],
@@ -509,7 +494,7 @@ pub fn create_set_hand_note<
     let aux = ZERO;
 
     let metadata = NoteMetadata::new(sender_account_id, NoteType::Public, tag, aux)?;
-    let vault = NoteAssets::new(assets)?;
+    let vault = NoteAssets::new(vec![])?;
     let recipient = NoteRecipient::new(serial_num, note_script, note_inputs);
 
     Ok(Note::new(vault, metadata, recipient))
@@ -524,7 +509,6 @@ pub fn create_send_community_cards_note<
     client: &mut Client<N, R, S, A>,
     sender_account_id: AccountId,
     target_account_id: AccountId,
-    assets: Vec<Asset>,
     note_type: NoteType,
     mut rng: RpoRandomCoin,
     cards: [[Felt; 4]; 3],
@@ -546,7 +530,7 @@ pub fn create_send_community_cards_note<
     let aux = ZERO;
 
     let metadata = NoteMetadata::new(sender_account_id, NoteType::Public, tag, aux)?;
-    let vault = NoteAssets::new(assets)?;
+    let vault = NoteAssets::new(vec![])?;
     let recipient = NoteRecipient::new(serial_num, note_script, note_inputs);
 
     Ok(Note::new(vault, metadata, recipient))

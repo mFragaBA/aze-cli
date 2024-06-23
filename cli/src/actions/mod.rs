@@ -1,4 +1,3 @@
-use crate::utils::{ get_faucet_id, get_note_asset };
 use aze_lib::client::{
     create_aze_client, AzeAccountTemplate, AzeClient, AzeGameMethods, AzeTransactionTemplate,
     PlayBetTransactionData, PlayCallTransactionData, PlayCheckTransactionData,
@@ -14,7 +13,6 @@ use miden_client::client::{
 };
 use miden_objects::{
     accounts::AccountId,
-    assets::{Asset, FungibleAsset, TokenSymbol},
     notes::NoteType,
 };
 
@@ -42,13 +40,10 @@ pub async fn raise(
     )
     .await;
 
-    let asset = get_note_asset();
-
     // request highest bet from game account client
     let highest_bet = 5; // for now
 
     let playraise_txn_data = PlayRaiseTransactionData::new(
-        asset,
         player_account_id,
         game_account_id,
         highest_bet as u8 + amount.unwrap(),
@@ -92,10 +87,7 @@ pub async fn call(
     )
     .await;
 
-    let asset = get_note_asset();
-
     let playcall_txn_data = PlayCallTransactionData::new(
-        asset,
         player_account_id,
         game_account_id,
     );
@@ -138,10 +130,7 @@ pub async fn check(
     )
     .await;
 
-    let asset = get_note_asset();
-
     let playcheck_txn_data = PlayCheckTransactionData::new(
-        asset,
         player_account_id,
         game_account_id,
     );
@@ -185,10 +174,7 @@ pub async fn fold(
     )
     .await;
 
-    let asset = get_note_asset();
-
     let playfold_txn_data = PlayFoldTransactionData::new(
-        asset,
         player_account_id,
         game_account_id,
     );
@@ -231,10 +217,7 @@ pub async fn bet(
     )
     .await;
 
-    let asset = get_note_asset();
-
     let playbet_txn_data = PlayBetTransactionData::new(
-        asset,
         player_account_id,
         game_account_id,
         amount,

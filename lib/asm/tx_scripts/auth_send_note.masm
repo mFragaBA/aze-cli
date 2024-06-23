@@ -1,0 +1,22 @@
+use.miden::account
+use.miden::contracts::auth::basic->auth_tx
+use.miden::contracts::wallets::basic->wallet
+use.miden::tx
+
+proc.tx_state_change
+    push.254 exec.account::get_item
+    add.1
+    push.254 exec.account::set_item
+    dropw dropw
+end
+
+begin
+    push.{recipient}
+    push.{note_type}
+    push.{tag}
+    call.tx::create_note 
+    drop drop dropw dropw
+    call.tx_state_change dropw
+    call.auth_tx::auth_tx_rpo_falcon512
+    # => []
+end
