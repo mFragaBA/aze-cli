@@ -18,7 +18,6 @@ pub async fn execute_tx_and_sync(client: &mut AzeClient, tx_request: Transaction
             return;
         }
     };
-    println!("Haven't submitted txn");
     let transaction_id = transaction_execution_result.executed_transaction().id();
 
     client
@@ -28,7 +27,6 @@ pub async fn execute_tx_and_sync(client: &mut AzeClient, tx_request: Transaction
     // wait until tx is committed
     loop {
         client.sync_state().await.unwrap();
-        println!("Seems like note is consumed");
 
         // Check if executed transaction got committed by the node
         let uncommited_transactions = client
