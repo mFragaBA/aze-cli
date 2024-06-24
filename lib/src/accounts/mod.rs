@@ -8,10 +8,10 @@ use miden_objects::{
     crypto::hash::rpo::RpoDigest,
     AccountError, Felt, FieldElement, Word, ZERO,
 };
-
 use crate::constants::{ PLAYER_STATS_SLOTS, SECRET_KEY_SLOT, DEFAULT_SKEY, MASKING_FACTOR_SLOT, DEFAULT_MASKING_FACTOR };
 use crate::storage::GameStorageSlotData;
 use miden_lib::{transaction::TransactionKernel, AuthScheme};
+use rand::{prelude::SliceRandom, thread_rng};
 
 fn construct_game_constructor_storage(
     auth_scheme: AuthScheme,
@@ -28,21 +28,24 @@ fn construct_game_constructor_storage(
     let flop_index = slot_data.flop_index();
     let player_account_ids = slot_data.player_account_ids();
 
-    let mut slot_index = 1u8;
+    let mut slot_index = 0u8;
 
     let (_, storage_slot_0_data): (&str, Word) = match auth_scheme {
         AuthScheme::RpoFalcon512 { pub_key } => ("basic::auth_tx_rpo_falcon512", pub_key.into()),
     };
 
     let auth_slot = SlotItem {
-        index: slot_index - 1, // 0th slot
+        index: slot_index, // 0th slot
         slot: StorageSlot::new_value(storage_slot_0_data),
     };
+
+    let mut card_slot_indices: Vec<u8> = (1..53).collect();
+    card_slot_indices.shuffle(&mut thread_rng());
 
     for card_suit in 1..5 {
         for card_number in 1..14 {
             let slot_item: SlotItem = SlotItem {
-                index: slot_index,
+                index: card_slot_indices[slot_index as usize],
                 slot: StorageSlot {
                     slot_type: StorageSlotType::Value { value_arity: 0 },
                     value: [
@@ -58,6 +61,7 @@ fn construct_game_constructor_storage(
             slot_index += 1;
         }
     }
+    slot_index += 1;
 
     let game_stats = vec![
         SlotItem {
