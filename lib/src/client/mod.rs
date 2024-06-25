@@ -715,6 +715,7 @@ impl<N: NodeRpcClient, R: FeltRng, S: Store, A: TransactionAuthenticator> AzeGam
             end
 
             begin
+                dropw
                 push.{slot1} swap drop
                 call.set_cards
                 push.{slot2} swap drop
