@@ -26,6 +26,7 @@ impl ReceiveCardsCmd {
         let mut client: AzeClient = create_aze_client();
         let account_id = get_id(&self);
         consume_game_notes(account_id).await;
+        println!("Consumed notes");
         Ok(())
     }
 }

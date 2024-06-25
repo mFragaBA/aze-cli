@@ -14,7 +14,8 @@ pub async fn execute_tx_and_sync(client: &mut AzeClient, tx_request: Transaction
     let transaction_execution_result = match client.new_transaction(tx_request.clone()) {
         Ok(result) => result,
         Err(e) => {
-            println!("Error creating transaction: {:?}", e);
+            // suppressing the error 
+            // println!("Error creating transaction: {:?}", e);
             return;
         }
     };
