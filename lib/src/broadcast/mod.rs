@@ -16,7 +16,7 @@ use warp::Filter;
 
 use crate::client::{create_aze_client, AzeClient};
 use crate::constants::{
-    COMMUNITY_CARDS, CURRENT_PHASE_SLOT, CURRENT_TURN_INDEX_SLOT, FIRST_PLAYER_INDEX, IS_FOLD_OFFSET, NO_OF_PLAYERS, PLAYER_BALANCE_SLOT, PLAYER_HANDS, POT_VALUE
+    COMMUNITY_CARDS, CURRENT_PHASE_SLOT, CURRENT_TURN_INDEX_SLOT, FIRST_PLAYER_INDEX, IS_FOLD_OFFSET, NO_OF_PLAYERS, PLAYER_BALANCE_SLOT, PLAYER_HANDS, PLAYER_INITIAL_BALANCE
 };
 use crate::gamestate::{Check_Action, PokerGame};
 use crate::utils::Ws_config;
@@ -260,8 +260,6 @@ async fn stat_handler(body: StatRequest) -> Result<impl warp::Reply, warp::Rejec
         .as_elements()[0]
         .as_int();
 
-    let pot_value = game_account.storage().get_item(POT_VALUE).as_elements()[0].as_int();
-
     // Array with balance of players
     let mut player_balances: Vec<u64> = vec![];
 
@@ -295,7 +293,12 @@ async fn stat_handler(body: StatRequest) -> Result<impl warp::Reply, warp::Rejec
             player_hand_slot_data[0].as_int(),
             player_hand_slot_data[1].as_int(),
         ]);
-        has_folded.push(game_account.storage().get_item(has_folded_slot).as_elements()[0].as_int())
+        has_folded.push(game_account.storage().get_item(has_folded_slot).as_elements()[0].as_int());
+    }
+    
+    let mut pot_value = 0;
+    for player_balance in player_balances.iter() {
+        pot_value += (PLAYER_INITIAL_BALANCE as u64 - player_balance);
     }
 
     for i in COMMUNITY_CARDS {
