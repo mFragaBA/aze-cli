@@ -19,7 +19,7 @@ impl StatsCmd {
         let gameid: u64 = get_id();
         let mut client: AzeClient = create_aze_client();
         let game_account_id = AccountId::try_from(gameid).unwrap();
-        let game_account = client.get_account(game_account_id).unwrap().0;
+        // let game_account = client.get_account(game_account_id).unwrap().0; // giving error
         let ws_url = Ws_config::load(ws_config).url.unwrap();
         let stat_data: aze_lib::utils::StatResponse =
             get_stats(game_account_id.to_string(), ws_url).await?;
