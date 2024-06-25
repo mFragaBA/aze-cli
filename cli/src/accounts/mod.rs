@@ -7,15 +7,13 @@ use aze_lib::client::{
     ShuffleCardTransactionData,
     RemaskTransactionData,
     SetCardsTransactionData,
-    UnmaskTransactionData,
-    InterUnmaskTransactionData,
-    SendUnmaskedCardsTransactionData,
+    SetCommCardsTransactionData,
     SetHandTransactionData,
-    SendCommunityCardsTransactionData,
 };
 use aze_lib::constants::{
     FIRST_PLAYER_INDEX, HIGHEST_BET, NO_OF_PLAYERS, PLAYER_INITIAL_BALANCE, SMALL_BUY_IN_AMOUNT,
     PLAYER_DATA_SLOT, DEFAULT_ACTION_TYPE, PLAYER_CARD1_SLOT, PLAYER_CARD2_SLOT, TEMP_CARD_SLOT,
+    FLOP_NO_OF_CARDS, FLOP_SLOT, DECK_SIZE, CURRENT_PHASE_SLOT,
 };
 use aze_lib::executor::execute_tx_and_sync;
 use aze_lib::notes::{consume_notes, mint_note};
@@ -70,8 +68,9 @@ pub async fn create_aze_game_account(
 
     for i in 1..2 * NO_OF_PLAYERS + 1 {
         let slot_index = i;
-        let card = game_account.storage().get_item(slot_index as u8);
-        cards.push(card.into());
+        let mut card: [Felt; 4] = game_account.storage().get_item(slot_index as u8).into();
+        card[2] = Felt::from(slot_index);
+        cards.push(card);
     }
 
     for (i, _) in player_account_ids.iter().enumerate() {
@@ -134,6 +133,60 @@ pub async fn consume_game_notes(account_id: AccountId) {
         let tx_request = client.build_transaction_request(tx_template).unwrap();
         execute_tx_and_sync(&mut client, tx_request).await;
     }
+}
+
+pub async fn set_community_cards(game_account_id: AccountId) {
+    let mut client: AzeClient = create_aze_client();
+    let (game_account, _) = client.get_account(game_account_id).unwrap();
+
+    let mut used_cards = vec![];
+    for slot in 1..53 {
+        let card = game_account.storage().get_item(slot).as_elements().to_vec();
+        if card == [Felt::ZERO; 4] {
+            used_cards.push(slot);
+        }
+    }
+
+    for slot in FLOP_SLOT..FLOP_SLOT + 5 {
+        let card = game_account.storage().get_item(slot).as_elements()[0].as_int();
+        used_cards.push(card as u8);
+    }
+
+    let phase = game_account.storage().get_item(CURRENT_PHASE_SLOT).as_elements()[0].as_int();
+    let mut community_cards: [[Felt; 4]; 3] = [[Felt::ZERO; 4]; 3];
+    let mut no_of_cards = 1;
+    let mut card_slot = FLOP_SLOT;
+
+    if phase == 1 {
+        no_of_cards = FLOP_NO_OF_CARDS;
+    } 
+    else if phase == 2 {
+        no_of_cards = 1;
+        card_slot = FLOP_SLOT + 3;
+    }
+    else if phase == 3 {
+        no_of_cards = 1;
+        card_slot = FLOP_SLOT + 4;
+    }
+
+    for i in 0..no_of_cards {
+        let mut card = rand::random::<u8>() % DECK_SIZE + 1;
+        while used_cards.contains(&card) {
+            card = rand::random::<u8>() % DECK_SIZE + 1;
+        }
+        used_cards.push(card);
+        community_cards[i as usize] = [Felt::from(card), Felt::ZERO, Felt::ZERO, Felt::ZERO];
+    }
+
+    let set_comm_cards_data = SetCommCardsTransactionData::new(
+        game_account_id, 
+        game_account_id,
+        &community_cards,
+        card_slot
+    );
+    let transaction_template = AzeTransactionTemplate::SetCommCards(set_comm_cards_data);
+    let txn_request = client.build_aze_set_community_cards_tx_request(transaction_template).unwrap();
+    execute_tx_and_sync(&mut client, txn_request.clone()).await;
 }
 
 pub async fn commit_hand(account_id: AccountId, game_account_id: AccountId, player_hand: u8) {

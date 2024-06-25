@@ -128,7 +128,7 @@ pub struct SendUnmaskedCardsTransactionData {
 }
 
 #[derive(Clone)]
-pub struct UnmaskTransactionData {
+pub struct SetCommCardsTransactionData {
     sender_account_id: AccountId,
     target_account_id: AccountId,
     cards: [[Felt; 4]; 3],
@@ -331,7 +331,7 @@ impl SendUnmaskedCardsTransactionData {
     }
 }
 
-impl UnmaskTransactionData {
+impl SetCommCardsTransactionData {
     pub fn account_id(&self) -> AccountId {
         self.sender_account_id
     }
@@ -665,6 +665,9 @@ impl<N: NodeRpcClient, R: FeltRng, S: Store, A: TransactionAuthenticator> AzeGam
             _ => panic!("Invalid transaction template"),
         };
 
+        let slot1 = cards[0][2].as_int();
+        let slot2 = cards[1][2].as_int();
+
         let random_coin = self.get_random_coin();
 
         let created_note = create_send_card_note(
@@ -689,12 +692,50 @@ impl<N: NodeRpcClient, R: FeltRng, S: Store, A: TransactionAuthenticator> AzeGam
         // TODO: remove this hardcoded note type
         let note_type = NoteType::Public;
 
-        let tx_script = ProgramAst::parse(
-            &AUTH_SEND_NOTE_SCRIPT
-                .replace("{recipient}", &recipient)
-                .replace("{note_type}", &Felt::from(note_type as u8).to_string())
-                .replace("{tag}", &Felt::new(note_tag.into()).to_string())
-        ).unwrap();
+        let tx_script = format!(
+            "\
+            use.miden::account
+            use.miden::contracts::auth::basic->auth_tx
+            use.miden::contracts::wallets::basic->wallet
+            use.miden::tx
+
+            proc.tx_state_change
+                push.254 exec.account::get_item
+                add.1
+                push.254 exec.account::set_item
+                dropw dropw
+            end
+
+            proc.set_cards
+                # => [card_index, rank, suit]
+                push.0 dup movup.2
+                # => [card_index, 0, 0, rank, suit]
+                exec.account::set_item
+                dropw dropw
+            end
+
+            begin
+                push.{slot1} swap drop
+                set_cards
+                push.{slot2} swap drop
+                set_cards
+                push.{recipient}
+                push.{note_type}
+                push.{tag}
+                call.tx::create_note 
+                drop drop dropw dropw
+                call.tx_state_change dropw
+                call.auth_tx::auth_tx_rpo_falcon512
+                # => []
+            end
+            ",
+            recipient = recipient,
+            note_type = Felt::from(note_type as u8),
+            tag = Felt::new(note_tag.into()),
+            slot1 = slot1,
+            slot2 = slot2
+        );
+        let tx_script = ProgramAst::parse(&tx_script).unwrap();
 
         let (pubkey_input, advice_map): (Word, Vec<Felt>) = match account_auth {
             AuthSecretKey::RpoFalcon512(key) => (
@@ -1434,7 +1475,7 @@ impl<N: NodeRpcClient, R: FeltRng, S: Store, A: TransactionAuthenticator> AzeGam
         let account_auth = self.store().get_account_auth(account_id)?;
 
         let (sender_account_id, target_account_id, cards, card_slot) = match transaction_template {
-            AzeTransactionTemplate::Unmask(UnmaskTransactionData {
+            AzeTransactionTemplate::SetCommCards(SetCommCardsTransactionData {
                 sender_account_id,
                 target_account_id,
                 cards,
@@ -1580,7 +1621,7 @@ impl<N: NodeRpcClient, R: FeltRng, S: Store, A: TransactionAuthenticator> AzeGam
         let account_auth = self.store().get_account_auth(account_id)?;
 
         let (sender_account_id, target_account_id, cards, card_slot) = match transaction_template {
-            AzeTransactionTemplate::Unmask(UnmaskTransactionData {
+            AzeTransactionTemplate::SetCommCards(SetCommCardsTransactionData {
                 sender_account_id,
                 target_account_id,
                 cards,
@@ -1811,7 +1852,7 @@ pub enum AzeTransactionTemplate {
     ShuffleCard(ShuffleCardTransactionData),
     Remask(RemaskTransactionData),
     SetCards(SetCardsTransactionData),
-    Unmask(UnmaskTransactionData),
+    SetCommCards(SetCommCardsTransactionData),
     InterUnmask(InterUnmaskTransactionData),
     SendUnmaskedCards(SendUnmaskedCardsTransactionData),
     SetHand(SetHandTransactionData),
@@ -1832,7 +1873,7 @@ impl AzeTransactionTemplate {
             AzeTransactionTemplate::ShuffleCard(p) => p.account_id(),
             AzeTransactionTemplate::Remask(p) => p.account_id(),
             AzeTransactionTemplate::SetCards(p) => p.account_id(),
-            AzeTransactionTemplate::Unmask(p) => p.account_id(),
+            AzeTransactionTemplate::SetCommCards(p) => p.account_id(),
             AzeTransactionTemplate::InterUnmask(p) => p.account_id(),
             AzeTransactionTemplate::SendUnmaskedCards(p) => p.account_id(),
             AzeTransactionTemplate::SetHand(p) => p.account_id(),

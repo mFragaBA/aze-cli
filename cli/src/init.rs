@@ -1,4 +1,4 @@
-use crate::accounts::{ create_aze_game_account, consume_game_notes };
+use crate::accounts::{ create_aze_game_account, consume_game_notes, set_community_cards };
 use aze_lib::client::{ create_aze_client, AzeClient };
 use aze_lib::broadcast::initialise_server;
 use aze_lib::constants::{
@@ -123,7 +123,7 @@ impl InitCmd {
                             }
                             
                             // phase updated
-                            if phase == pre_phase+1 {
+                            if phase == pre_phase + 1 {
                                 match pre_phase {
                                     0 => {
                                         let mut revealed_comm: Vec<u64> = vec![];
@@ -185,6 +185,8 @@ impl InitCmd {
                                     }
                                     _ => (),
                                 }
+
+                                set_community_cards(game_account_id).await;
                             }
 
                             // broadcast message if game ends

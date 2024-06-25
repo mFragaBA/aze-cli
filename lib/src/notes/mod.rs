@@ -46,9 +46,9 @@ pub fn create_send_card_note<
     let card_1 = cards[0];
     let card_2 = cards[1];
 
-    let mut inputs = [card_1.as_slice(), card_2.as_slice()].concat();
+    let mut inputs = vec![card_1[0], card_1[1], Felt::ZERO, Felt::ZERO];
+    inputs = [inputs, vec![card_2[0], card_2[1], Felt::ZERO, Felt::ZERO]].concat();
     
-
     let note_inputs = NoteInputs::new(inputs).unwrap();
     let tag = NoteTag::from_account_id(target_account_id, NoteExecutionHint::Local)?;
     let serial_num = rng.draw_word();
