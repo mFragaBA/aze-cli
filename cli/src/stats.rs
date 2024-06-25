@@ -78,7 +78,7 @@ impl StatsCmd {
                 .paint("|---------------------------------------------------|"),
             Yellow
                 .bold()
-                .paint(format!("|     {:^20} {:^20}     |", "P1", "P2")),
+                .paint(format!("|     {:^20} {:^20}     |", "P3", "P4")),
             Yellow.bold().paint(format!(
                 "|     {:^20} {:^20}     |",
                 format!("Balance: {}",stat_data.player_balances[2]), format!("Balance: {}",stat_data.player_balances[3])
