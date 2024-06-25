@@ -65,15 +65,15 @@ impl StatsCmd {
             Yellow.bold().paint(format!(
                 "|     {:^20} {:^20}     |",
                 if stat_data.has_folded[0] == 0 {
-                    "P1".to_string()
+                    format!("P1")
                 } else {
-                    strike_through("P1".to_string())
+                    format!("P1 [Folded]")
                 },
                 if stat_data.has_folded[1] == 0 {
-                    "P2".to_string()
+                    format!("P2")
                 } else {
-                    strike_through("P2".to_string())
-                }
+                    format!("P2 [Folded]")
+                },
             )),
             Yellow.bold().paint(format!(
                 "|     {:^20} {:^20}     |",
@@ -91,14 +91,14 @@ impl StatsCmd {
             Yellow.bold().paint(format!(
                 "|     {:^20} {:^20}     |",
                 if stat_data.has_folded[2] == 0 {
-                    "P3".to_string()
+                    format!("P3")
                 } else {
-                    strike_through("P3".to_string())
+                    format!("P3 [Folded]")
                 },
                 if stat_data.has_folded[3] == 0 {
-                    "P4".to_string()
+                    format!("P4")
                 } else {
-                    strike_through("P4".to_string())
+                    format!("P4 [Folded]")
                 }
             )),
             Yellow.bold().paint(format!(
@@ -129,10 +129,4 @@ fn get_id() -> u64 {
     let game_id = player.game_id().unwrap();
 
     game_id
-}
-
-fn strike_through(msg: String) -> String {
-    let strike_start = "\x1b[9m";
-    let reset = "\x1b[0m";
-    format!("{}{}{}", strike_start, msg, reset)
 }
