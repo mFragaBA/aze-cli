@@ -181,14 +181,14 @@ fn construct_game_constructor_storage(
                 },
             },
             SlotItem {
-                index: slot_index + 2, // current bet
+                index: slot_index + 3, // current bet
                 slot: StorageSlot {
                     slot_type: StorageSlotType::Value { value_arity: 0 },
                     value: [Felt::ZERO, Felt::ZERO, Felt::ZERO, Felt::ZERO],
                 },
             },
             SlotItem {
-                index: slot_index + 3, // player balance
+                index: slot_index + 4, // player balance
                 slot: StorageSlot {
                     slot_type: StorageSlotType::Value { value_arity: 0 },
                     value: [
