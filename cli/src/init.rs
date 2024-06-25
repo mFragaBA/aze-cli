@@ -118,7 +118,7 @@ impl InitCmd {
 
                             // if phase is not incremented post consumption, continue
                             if pre_phase + 1 != phase {
-                                sleep(Duration::from_secs(5)).await;
+                                sleep(Duration::from_secs(2)).await;
                                 continue;
                             }
                             
@@ -196,6 +196,7 @@ impl InitCmd {
                                 )
                                 .await;
                             }
+                            sleep(Duration::from_secs(2)).await;
                         }
                     })
                     .await;
