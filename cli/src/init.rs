@@ -119,6 +119,11 @@ impl InitCmd {
                             // if phase is not incremented post consumption, continue
                             if pre_phase + 1 != phase {
                                 sleep(Duration::from_secs(5)).await;
+                                continue;
+                            }
+                            
+                            // phase updated
+                            if phase == pre_phase+1 {
                                 match pre_phase {
                                     0 => {
                                         let mut revealed_comm: Vec<u64> = vec![];
@@ -180,7 +185,6 @@ impl InitCmd {
                                     }
                                     _ => (),
                                 }
-                                continue;
                             }
 
                             // broadcast message if game ends
