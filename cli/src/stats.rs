@@ -42,6 +42,8 @@ impl StatsCmd {
              {}\n\
              {}\n\
              {}\n\
+             {}\n\
+             {}\n\
              {}",
             Blue.bold()
                 .paint("+---------------------------------------------------+"),
@@ -87,6 +89,12 @@ impl StatsCmd {
             Yellow.bold().paint(format!(
                 "|          {:^31}          |",
                 format!("POT VALUE: {}", stat_data.pot_value)
+            )),
+            Blue.bold()
+                .paint("|---------------------------------------------------|"),
+            Yellow.bold().paint(format!(
+                "|          {:^31}          |",
+                format!("HIGHEST BET: {}", stat_data.highest_bet)
             )),
             Blue.bold()
                 .paint("|---------------------------------------------------|"),

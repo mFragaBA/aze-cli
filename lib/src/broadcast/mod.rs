@@ -16,7 +16,7 @@ use warp::Filter;
 
 use crate::client::{create_aze_client, AzeClient};
 use crate::constants::{
-    COMMUNITY_CARDS, CURRENT_PHASE_SLOT, CURRENT_TURN_INDEX_SLOT, FIRST_PLAYER_INDEX, IS_FOLD_OFFSET, NO_OF_PLAYERS, PLAYER_BALANCE_SLOT, PLAYER_HANDS, PLAYER_INITIAL_BALANCE
+    COMMUNITY_CARDS, CURRENT_PHASE_SLOT, CURRENT_TURN_INDEX_SLOT, FIRST_PLAYER_INDEX, HIGHEST_BET_SLOT, IS_FOLD_OFFSET, NO_OF_PLAYERS, PLAYER_BALANCE_SLOT, PLAYER_HANDS, PLAYER_INITIAL_BALANCE
 };
 use crate::gamestate::{Check_Action, PokerGame};
 use crate::utils::Ws_config;
@@ -30,7 +30,7 @@ struct PublishRequest {
 
 #[derive(Deserialize)]
 struct StatRequest {
-    game_id: String
+    game_id: String,
 }
 
 #[derive(Serialize)]
@@ -42,7 +42,8 @@ struct StatResponse {
     pub player_hands: Vec<u64>,
     pub current_state: u64,
     pub player_hand_cards: Vec<Vec<u64>>,
-    pub has_folded: Vec<u64>
+    pub has_folded: Vec<u64>,
+    pub highest_bet: u64
 }
 
 #[derive(Deserialize, Serialize)]
@@ -293,9 +294,15 @@ async fn stat_handler(body: StatRequest) -> Result<impl warp::Reply, warp::Rejec
             player_hand_slot_data[0].as_int(),
             player_hand_slot_data[1].as_int(),
         ]);
-        has_folded.push(game_account.storage().get_item(has_folded_slot).as_elements()[0].as_int());
+        has_folded.push(
+            game_account
+                .storage()
+                .get_item(has_folded_slot)
+                .as_elements()[0]
+                .as_int(),
+        );
     }
-    
+
     let mut pot_value = 0;
     for player_balance in player_balances.iter() {
         pot_value += (PLAYER_INITIAL_BALANCE as u64 - player_balance);
@@ -315,6 +322,11 @@ async fn stat_handler(body: StatRequest) -> Result<impl warp::Reply, warp::Rejec
         .get_item(CURRENT_PHASE_SLOT)
         .as_elements()[0]
         .as_int();
+    let highest_bet = game_account
+        .storage()
+        .get_item(HIGHEST_BET_SLOT)
+        .as_elements()[0]
+        .as_int();
 
     Ok(warp::reply::json(&StatResponse {
         community_cards,
@@ -324,7 +336,8 @@ async fn stat_handler(body: StatRequest) -> Result<impl warp::Reply, warp::Rejec
         player_hands,
         current_state,
         player_hand_cards,
-        has_folded
+        has_folded,
+        highest_bet
     }))
 }
 
