@@ -56,10 +56,10 @@ impl PokerGame {
 
     pub fn check_move(&mut self, check_action: Check_Action, player_id: u64) -> bool {
         let player = &mut self.players[self.current_player_index];
-        if player.id != player_id {
-            eprintln!("Not your turn");
-            return false;
-        }
+        // if player.id != player_id {
+        //     eprintln!("Not your turn");
+        //     return false;
+        // }
         if player.has_folded {
             eprintln!("Player has already folded");
             return false;
