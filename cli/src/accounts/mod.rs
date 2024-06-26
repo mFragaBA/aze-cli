@@ -135,63 +135,6 @@ pub async fn consume_game_notes(account_id: AccountId) {
     }
 }
 
-pub async fn set_community_cards(game_account_id: AccountId) {
-    let mut client: AzeClient = create_aze_client();
-    let (game_account, _) = client.get_account(game_account_id).unwrap();
-
-    let mut used_cards = vec![];
-    for slot in 1..53 {
-        let card = game_account.storage().get_item(slot).as_elements().to_vec();
-        if card == [Felt::ZERO; 4] {
-            used_cards.push(slot);
-        }
-    }
-
-    for slot in FLOP_SLOT..FLOP_SLOT + 5 {
-        let card = game_account.storage().get_item(slot).as_elements()[0].as_int();
-        used_cards.push(card as u8);
-    }
-
-    let phase = game_account.storage().get_item(CURRENT_PHASE_SLOT).as_elements()[0].as_int();
-    let mut community_cards: [[Felt; 4]; 3] = [[Felt::ZERO; 4]; 3];
-    let mut no_of_cards = 1;
-    let mut card_slot = FLOP_SLOT;
-
-    if phase == 1 {
-        no_of_cards = FLOP_NO_OF_CARDS;
-    } 
-    else if phase == 2 {
-        no_of_cards = 1;
-        card_slot = FLOP_SLOT + 3;
-    }
-    else if phase == 3 {
-        no_of_cards = 1;
-        card_slot = FLOP_SLOT + 4;
-    }
-
-    for i in 0..no_of_cards {
-        let mut card = rand::random::<u8>() % DECK_SIZE + 1;
-        while used_cards.contains(&card) {
-            card = rand::random::<u8>() % DECK_SIZE + 1;
-        }
-        used_cards.push(card);
-        community_cards[i as usize] = [Felt::from(card), Felt::ZERO, Felt::ZERO, Felt::ZERO];
-    }
-
-    let set_comm_cards_data = SetCommCardsTransactionData::new(
-        game_account_id, 
-        game_account_id,
-        &community_cards,
-        card_slot
-    );
-    let transaction_template = AzeTransactionTemplate::SetCommCards(set_comm_cards_data);
-    let txn_request = client.build_aze_set_community_cards_tx_request(transaction_template).unwrap();
-    execute_tx_and_sync(&mut client, txn_request.clone()).await;
-    let note_id = txn_request.expected_output_notes()[0].id();
-    let note = client.get_input_note(note_id).unwrap();
-    consume_notes(&mut client, game_account_id, &[note.try_into().unwrap()]).await;
-}
-
 pub async fn commit_hand(account_id: AccountId, game_account_id: AccountId, player_hand: u8) {
     let mut client: AzeClient = create_aze_client();
     let (player_account, _) = client.get_account(account_id).unwrap();

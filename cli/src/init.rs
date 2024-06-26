@@ -1,4 +1,4 @@
-use crate::accounts::{ create_aze_game_account, consume_game_notes, set_community_cards };
+use crate::accounts::{ create_aze_game_account, consume_game_notes };
 use aze_lib::client::{ create_aze_client, AzeClient };
 use aze_lib::broadcast::initialise_server;
 use aze_lib::constants::{
@@ -124,7 +124,6 @@ impl InitCmd {
                             
                             // phase updated
                             if phase == pre_phase + 1 {
-                                set_community_cards(game_account_id).await;
                                 
                                 match pre_phase {
                                     0 => {
