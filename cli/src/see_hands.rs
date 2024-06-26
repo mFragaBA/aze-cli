@@ -4,7 +4,7 @@ use ansi_term::Colour::{Blue, Green, Red, Yellow};
 use aze_lib::{
     client::{create_aze_client, AzeClient},
     constants::PLAYER_FILE_PATH,
-    utils::{card_from_number, get_stats, Ws_config, Player},
+    utils::{card_from_number, card_from_number_unique, get_stats, Player, Ws_config},
 };
 use clap::Parser;
 use dialoguer::Input;
@@ -24,10 +24,10 @@ impl SeeHandsCmd {
             get_stats(game_account_id.to_string(), ws_url).await?;
 
         // Check: If game has not ended there is no hand to show. Comment for testing
-        // if stat_data.current_state != 3 {
-        //     println!("{}",Red.bold().paint("Game not ended yet!!!"));
-        //     return Ok(());
-        // }
+        if stat_data.current_state != 3 {
+            println!("{}", Red.bold().paint("Game not ended yet!!!"));
+            return Ok(());
+        }
 
         let hands_output = format!(
             "{} \n\
@@ -59,11 +59,26 @@ impl SeeHandsCmd {
                 "|------ {:^37} ------|",
                 format!(
                     "{:4} {:4} {:4} {:4} {:4}",
-                    card_from_number(stat_data.community_cards[0]),
-                    card_from_number(stat_data.community_cards[1]),
-                    card_from_number(stat_data.community_cards[2]),
-                    card_from_number(stat_data.community_cards[3]),
-                    card_from_number(stat_data.community_cards[4])
+                    card_from_number(
+                        stat_data.community_cards[0][0].as_int(),
+                        stat_data.community_cards[0][1].as_int(),
+                    ),
+                    card_from_number(
+                        stat_data.community_cards[1][0].as_int(),
+                        stat_data.community_cards[1][1].as_int(),
+                    ),
+                    card_from_number(
+                        stat_data.community_cards[2][0].as_int(),
+                        stat_data.community_cards[2][1].as_int(),
+                    ),
+                    card_from_number(
+                        stat_data.community_cards[3][0].as_int(),
+                        stat_data.community_cards[3][1].as_int(),
+                    ),
+                    card_from_number(
+                        stat_data.community_cards[4][0].as_int(),
+                        stat_data.community_cards[4][1].as_int(),
+                    )
                 )
             )),
             Blue.bold()
@@ -80,8 +95,8 @@ impl SeeHandsCmd {
                 get_hand(stat_data.player_hands[0]).unwrap(),
                 format!(
                     "{} {}",
-                    card_from_number(stat_data.player_hand_cards[0][0]),
-                    card_from_number(stat_data.player_hand_cards[0][1])
+                    card_from_number_unique(stat_data.player_hand_cards[0][0]),
+                    card_from_number_unique(stat_data.player_hand_cards[0][1])
                 )
             )),
             Blue.bold()
@@ -92,8 +107,8 @@ impl SeeHandsCmd {
                 get_hand(stat_data.player_hands[0]).unwrap(),
                 format!(
                     "{} {}",
-                    card_from_number(stat_data.player_hand_cards[1][0]),
-                    card_from_number(stat_data.player_hand_cards[1][1])
+                    card_from_number_unique(stat_data.player_hand_cards[1][0]),
+                    card_from_number_unique(stat_data.player_hand_cards[1][1])
                 )
             )),
             Blue.bold()
@@ -104,8 +119,8 @@ impl SeeHandsCmd {
                 get_hand(stat_data.player_hands[0]).unwrap(),
                 format!(
                     "{} {}",
-                    card_from_number(stat_data.player_hand_cards[2][0]),
-                    card_from_number(stat_data.player_hand_cards[2][1])
+                    card_from_number_unique(stat_data.player_hand_cards[2][0]),
+                    card_from_number_unique(stat_data.player_hand_cards[2][1])
                 )
             )),
             Blue.bold()
@@ -116,8 +131,8 @@ impl SeeHandsCmd {
                 get_hand(stat_data.player_hands[0]).unwrap(),
                 format!(
                     "{} {}",
-                    card_from_number(stat_data.player_hand_cards[3][0]),
-                    card_from_number(stat_data.player_hand_cards[3][1])
+                    card_from_number_unique(stat_data.player_hand_cards[3][0]),
+                    card_from_number_unique(stat_data.player_hand_cards[3][1])
                 )
             )),
             Blue.bold()
@@ -148,7 +163,9 @@ fn get_hand(int_hand: u64) -> Result<(String), String> {
 
 fn get_id() -> u64 {
     let path = Path::new(PLAYER_FILE_PATH);
-    let player: Player = toml::from_str(&std::fs::read_to_string(path).expect("Failed to read Player.toml")).expect("Failed to deserialize player data");
+    let player: Player =
+        toml::from_str(&std::fs::read_to_string(path).expect("Failed to read Player.toml"))
+            .expect("Failed to deserialize player data");
     let game_id = player.game_id().unwrap();
 
     game_id

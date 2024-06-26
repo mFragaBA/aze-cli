@@ -3,6 +3,7 @@ use futures_util::{SinkExt, StreamExt};
 use get_if_addrs::get_if_addrs;
 use log::{error, info};
 use miden_objects::accounts::AccountId;
+use miden_objects::Felt;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::net::IpAddr;
@@ -35,7 +36,7 @@ struct StatRequest {
 
 #[derive(Serialize)]
 struct StatResponse {
-    pub community_cards: Vec<u64>,
+    pub community_cards: Vec<Vec<Felt>>,
     pub player_balances: Vec<u64>,
     pub current_player: u64,
     pub pot_value: u64,
@@ -268,7 +269,7 @@ async fn stat_handler(body: StatRequest) -> Result<impl warp::Reply, warp::Rejec
     let mut player_hands: Vec<u64> = vec![];
 
     //Community cards
-    let mut community_cards: Vec<u64> = vec![];
+    let mut community_cards: Vec<Vec<Felt>> = vec![];
 
     // Player hand cards
     let mut player_hand_cards: Vec<Vec<u64>> = Vec::new();
@@ -309,7 +310,7 @@ async fn stat_handler(body: StatRequest) -> Result<impl warp::Reply, warp::Rejec
     }
 
     for i in COMMUNITY_CARDS {
-        community_cards.push(game_account.storage().get_item(i).as_elements()[0].as_int());
+        community_cards.push(game_account.storage().get_item(i).as_elements().to_vec());
     }
 
     let current_player = game_account

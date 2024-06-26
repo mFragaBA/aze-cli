@@ -131,7 +131,7 @@ pub struct StatRequest {
 }
 #[derive(Serialize, Deserialize)]
 pub struct StatResponse {
-    pub community_cards: Vec<u64>,
+    pub community_cards: Vec<Vec<Felt>>,
     pub player_balances: Vec<u64>,
     pub current_player: u64,
     pub pot_value: u64,
@@ -279,7 +279,31 @@ pub fn read_player_data() -> Option<String> {
 }
 
 
-pub fn card_from_number(num: u64) -> String {
+pub fn card_from_number(suit: u64, rank: u64) -> String {
+    if rank == 0 || suit == 0 {
+        return String::from("NA");
+    }
+
+    let suit_ = match suit {
+        1 => "♣".to_string(),
+        2 => "♦".to_string(),
+        3 => "♥".to_string(),
+        4 => "♠".to_string(),
+        _ => "".to_string()
+    };
+
+    let rank_ = match (rank - 1) % 13 + 1 {
+        1 => "A".to_string(),
+        11 => "J".to_string(),
+        12 => "Q".to_string(),
+        13 => "K".to_string(),
+        n => n.to_string(),
+    };
+
+    format!("{}{}", rank_, suit_)
+}
+
+pub fn card_from_number_unique(num: u64) -> String {
     if num == 0 {
         return String::from("NA");
     }

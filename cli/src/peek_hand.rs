@@ -24,8 +24,7 @@ impl PeekHandCmd {
             let card_digest = player_account.storage().get_item(slot);
             let card_suit = card_digest.as_elements()[0].as_int();
             let card_rank = card_digest.as_elements()[1].as_int();
-            let card_number: u64 = (card_suit - 1) * 13 + card_rank;
-            let card = card_from_number(card_number);
+            let card = card_from_number(card_suit, card_rank);
             println!("Card {}: {}", i + 1, card);
         }
 
