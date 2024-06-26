@@ -24,6 +24,8 @@ impl StatsCmd {
         let stat_data: aze_lib::utils::StatResponse =
             get_stats(game_account_id.to_string(), ws_url).await?;
 
+        let community_cards: Vec<u64> =
+            get_community_cards(stat_data.current_state, stat_data.community_cards);
         let poker_table = format!(
             "{}\n\
              {}\n\
@@ -53,11 +55,11 @@ impl StatsCmd {
                 "|------ {:^37} ------|",
                 format!(
                     "{:4} {:4} {:4} {:4} {:4}",
-                    card_from_number(stat_data.community_cards[0]),
-                    card_from_number(stat_data.community_cards[1]),
-                    card_from_number(stat_data.community_cards[2]),
-                    card_from_number(stat_data.community_cards[3]),
-                    card_from_number(stat_data.community_cards[4])
+                    card_from_number(community_cards[0]),
+                    card_from_number(community_cards[1]),
+                    card_from_number(community_cards[2]),
+                    card_from_number(community_cards[3]),
+                    card_from_number(community_cards[4])
                 )
             )),
             Blue.bold()
@@ -129,4 +131,46 @@ fn get_id() -> u64 {
     let game_id = player.game_id().unwrap();
 
     game_id
+}
+
+fn get_community_cards(phase: u64, community_cards: Vec<u64>) -> Vec<u64> {
+    match phase {
+        1 => {
+            vec![
+                community_cards[0],
+                community_cards[1],
+                community_cards[2],
+                0,
+                0,
+            ]
+        }
+        2 => {
+            vec![
+                community_cards[0],
+                community_cards[1],
+                community_cards[2],
+                community_cards[3],
+                0,
+            ]
+        }
+        3 => {
+            vec![
+                community_cards[0],
+                community_cards[1],
+                community_cards[2],
+                community_cards[3],
+                community_cards[4],
+            ]
+        }
+        4 => {
+            vec![
+                community_cards[0],
+                community_cards[1],
+                community_cards[2],
+                community_cards[3],
+                community_cards[4],
+            ]
+        }
+        _ => vec![0, 0, 0, 0, 0],
+    }
 }
