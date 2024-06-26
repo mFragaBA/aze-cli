@@ -1,5 +1,5 @@
 use crate::accounts::{create_basic_aze_game_account, create_basic_aze_player_account};
-use crate::constants::{ CLIENT_CONFIG_FILE_NAME, AUTH_SEND_NOTE_SCRIPT };
+use crate::constants::{ CLIENT_CONFIG_FILE_NAME, AUTH_SEND_NOTE_SCRIPT, AUTH_CONSUME_NOTE_SCRIPT };
 use crate::notes::{
     create_play_bet_note, create_play_call_note, create_play_check_note, create_play_fold_note,
     create_play_raise_note, create_send_card_note, create_key_gen_note, create_shuffle_card_note,
@@ -34,7 +34,7 @@ use miden_lib::AuthScheme;
 use miden_objects::assets::Asset;
 use miden_objects::crypto::rand::FeltRng;
 use miden_objects::crypto::rand::RpoRandomCoin;
-use miden_objects::notes::NoteType;
+use miden_objects::notes::{NoteType, NoteId};
 use miden_objects::{
     accounts::{Account, AccountData, AccountId, AccountStub, AccountType, AuthSecretKey},
     assembly::ProgramAst,
@@ -414,6 +414,11 @@ pub trait AzeGameMethods {
     // fn get_tx_executor(&self) -> TransactionExecutor<ClientDataStore<D>>;
     fn store(&self) -> SqliteStore;
     fn get_random_coin(&self) -> RpoRandomCoin;
+    fn build_aze_consume_note_tx_request(
+        &mut self,
+        consumer_account_id: AccountId,
+        notes_to_consume: &[NoteId],
+    ) -> Result<TransactionRequest, ClientError>;
     fn build_aze_send_card_tx_request(
         &mut self,
         // auth_info: AuthSecretKey,
@@ -649,6 +654,26 @@ impl<N: NodeRpcClient, R: FeltRng, S: Store, A: TransactionAuthenticator> AzeGam
         self.insert_account(&account, Some(seed), &AuthSecretKey::RpoFalcon512(key_pair))?;
         Ok((account, seed))
     }
+
+    /// Builds a tx request used to consume notes.
+    ///
+    /// This uses a custom consume notes script different than the one that comes with
+    /// `miden_client` since that one requires the notes that are being consumed to always update
+    /// either the account storage or the account asset vault. This one in turn enforces that in
+    /// the transaction script itself.
+    fn build_aze_consume_note_tx_request(
+            &mut self,
+            consumer_account_id: AccountId,
+            notes_to_consume: &[NoteId],
+        ) -> Result<TransactionRequest, ClientError> {
+        let tx_script = ProgramAst::parse(AUTH_CONSUME_NOTE_SCRIPT).expect("shipped MASM is well-formed");
+        let tx_script = self.compile_tx_script(tx_script, vec![], vec![])?;
+
+        let notes = notes_to_consume.iter().map(|id| (*id, None)).collect();
+
+        Ok(TransactionRequest::new(consumer_account_id, notes, vec![], vec![], Some(tx_script)))
+    }
+
 
     // TODO: include note_type as an argument here for now we are hardcoding it
     fn build_aze_send_card_tx_request(

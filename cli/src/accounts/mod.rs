@@ -136,8 +136,7 @@ pub async fn consume_game_notes(account_id: AccountId) {
     println!("Consumable notes: {:?}", consumable_notes.len());
 
     for consumable_note in consumable_notes {
-        let tx_template = TransactionTemplate::ConsumeNotes(account_id, vec![consumable_note.note.id()]);
-        let tx_request = client.build_transaction_request(tx_template).unwrap();
+        let tx_request = client.build_aze_consume_note_tx_request(account_id, &[consumable_note.note.id()]).unwrap();
         execute_tx_and_sync(&mut client, tx_request).await;
         sleep(Duration::from_secs(5)).await;
     }

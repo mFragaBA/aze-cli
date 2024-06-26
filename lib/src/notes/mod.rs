@@ -1,4 +1,4 @@
-use crate::client::AzeClient;
+use crate::client::{AzeClient, AzeGameMethods};
 use crate::constants::{ BUY_IN_AMOUNT, TRANSFER_AMOUNT, FLOP_NO_OF_CARDS };
 use crate::executor::execute_tx_and_sync;
 use miden_client::client::Client;
@@ -566,9 +566,7 @@ pub async fn consume_notes(
     account_id: AccountId,
     input_notes: &[InputNote],
 ) {
-    let tx_template =
-        TransactionTemplate::ConsumeNotes(account_id, input_notes.iter().map(|n| n.id()).collect());
-    
-    let tx_request: TransactionRequest = client.build_transaction_request(tx_template).unwrap();
+    let note_ids = input_notes.iter().map(|note| note.id()).collect::<Vec<_>>();
+    let tx_request: TransactionRequest = client.build_aze_consume_note_tx_request(account_id, &note_ids).unwrap();
     execute_tx_and_sync(client, tx_request).await;
 }
