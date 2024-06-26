@@ -187,6 +187,9 @@ pub async fn set_community_cards(game_account_id: AccountId) {
     let transaction_template = AzeTransactionTemplate::SetCommCards(set_comm_cards_data);
     let txn_request = client.build_aze_set_community_cards_tx_request(transaction_template).unwrap();
     execute_tx_and_sync(&mut client, txn_request.clone()).await;
+    let note_id = txn_request.expected_output_notes()[0].id();
+    let note = client.get_input_note(note_id).unwrap();
+    consume_notes(&mut client, game_account_id, &[note.try_into().unwrap()]).await;
 }
 
 pub async fn commit_hand(account_id: AccountId, game_account_id: AccountId, player_hand: u8) {

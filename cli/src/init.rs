@@ -124,6 +124,8 @@ impl InitCmd {
                             
                             // phase updated
                             if phase == pre_phase + 1 {
+                                set_community_cards(game_account_id).await;
+                                
                                 match pre_phase {
                                     0 => {
                                         let mut revealed_comm: Vec<u64> = vec![];
@@ -185,8 +187,6 @@ impl InitCmd {
                                     }
                                     _ => (),
                                 }
-
-                                set_community_cards(game_account_id).await;
                             }
 
                             // broadcast message if game ends
