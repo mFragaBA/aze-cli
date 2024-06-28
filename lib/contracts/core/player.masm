@@ -241,9 +241,9 @@ export.increment_action_type
 end
 
 export.tx_state_change
-    push.254 exec.account::get_item
+    push.253 exec.account::get_item
     add.1
-    push.254 exec.account::set_item
+    push.253 exec.account::set_item
     dropw dropw
 end
 

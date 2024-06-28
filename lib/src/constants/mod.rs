@@ -34,6 +34,7 @@ pub const FLOP_SLOT: u8 = 116;
 
 // PLAYER ACCOUNT
 pub const SECRET_KEY_SLOT: u8 = 53;
+pub const PUBLIC_KEY_SLOT: u8 = 54;
 pub const DEFAULT_SKEY: u8 = 8;
 pub const MASKING_FACTOR_SLOT: u8 = 55;
 pub const DEFAULT_MASKING_FACTOR: u8 = 9;

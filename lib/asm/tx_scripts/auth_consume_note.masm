@@ -2,15 +2,15 @@ use.miden::account
 use.miden::contracts::auth::basic->auth_tx
 
 proc.tx_state_change
-    push.254 exec.account::get_item
+    push.253 exec.account::get_item
     add.1
-    push.254 exec.account::set_item
+    push.253 exec.account::set_item
     dropw dropw
 end
 
 begin
     # Called to ensure the account storage changes (despite the consumed notes not updating the account storage)
-    call.tx_state_change dropw
+    call.tx_state_change
     call.auth_tx::auth_tx_rpo_falcon512
     # => []
 end

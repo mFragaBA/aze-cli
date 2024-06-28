@@ -1,4 +1,5 @@
 mod utils;
+use miden_objects::accounts::AccountId;
 use utils::{ 
     create_test_client,
     create_player_account,
@@ -25,7 +26,7 @@ use aze_lib::constants::{
     REQUESTER_SLOT,
     TEMP_CARD_SLOT,
     FIRST_PLAYER_INDEX,
-    HAND_OFFSET,
+    HAND_OFFSET, PUBLIC_KEY_SLOT,
 };
 use miden_client::{
     client::accounts::{ AccountTemplate, AccountStorageMode },
@@ -43,26 +44,57 @@ async fn test_e2e() {
 
     // Create player accounts
     let player1_id = create_player_account(&mut client).await;
-    let player2_id = create_player_account(&mut client).await;
-    let player3_id = create_player_account(&mut client).await;
-    let player4_id = create_player_account(&mut client).await;
-    let player_ids = vec![player1_id, player2_id, player3_id, player4_id];
+    println!("======= PLAYER 1 CREATED =======");
 
-    for player_id in player_ids.iter() {
-        let (player_account, _) = client.get_account(*player_id).unwrap();
+    {
+        let (player_account, _) = client.get_account(player1_id).unwrap();
         assert_eq!(player_account.storage().get_item(SECRET_KEY_SLOT), RpoDigest::new([Felt::from(DEFAULT_SKEY), Felt::ZERO, Felt::ZERO, Felt::ZERO]));
         assert_eq!(player_account.storage().get_item(MASKING_FACTOR_SLOT), RpoDigest::new([Felt::from(DEFAULT_MASKING_FACTOR), Felt::ZERO, Felt::ZERO, Felt::ZERO]));
     }
 
+    let player2_id = create_player_account(&mut client).await;
+    println!("======= PLAYER 2 CREATED =======");
+    let player3_id = create_player_account(&mut client).await;
+    println!("======= PLAYER 3 CREATED =======");
+    let player4_id = create_player_account(&mut client).await;
+    println!("======= PLAYER 4 CREATED =======");
+    let player_ids = vec![player1_id, player2_id, player3_id, player4_id];
+
+    dbg!(player1_id.to_hex());
+    dbg!(player2_id.to_hex());
+    dbg!(player3_id.to_hex());
+    dbg!(player4_id.to_hex());
+
     // Create an game account
     let game_account_id = create_game_account(&mut client).await;
     let (game_account, _) = client.get_account(game_account_id).unwrap();
+    dbg!(game_account_id.to_hex());
+
+    for (i, player_id) in player_ids.iter().enumerate() {
+        let (player_account, _) = client.get_account(*player_id).unwrap();
+        dbg!(player_account.storage().get_item(PLAYER_DATA_SLOT));
+        dbg!(player_account.storage().get_item(PUBLIC_KEY_SLOT));
+        dbg!(player_account.storage().get_item(SECRET_KEY_SLOT));
+        dbg!(player_account.storage().get_item(253));
+    }
 
     // Mask the cards
     mask_cards(&mut client, game_account_id, player_ids.clone()).await;
+    println!("MASKED CARDS");
     remask_cards(&mut client, game_account_id, player_ids.clone(), DEFAULT_ACTION_TYPE + 1).await;
+    println!("REMASKED CARDS 1");
     remask_cards(&mut client, game_account_id, player_ids.clone(), DEFAULT_ACTION_TYPE + 2).await;
+    println!("REMASKED CARDS 2");
     remask_cards(&mut client, game_account_id, player_ids.clone(), DEFAULT_ACTION_TYPE + 3).await;
+    println!("REMASKED CARDS 2");
+    // DBG PLAYER DATA
+    for (i, player_id) in player_ids.iter().enumerate() {
+        let (player_account, _) = client.get_account(*player_id).unwrap();
+        dbg!(player_account.storage().get_item(PLAYER_DATA_SLOT));
+        dbg!(player_account.storage().get_item(PUBLIC_KEY_SLOT));
+        dbg!(player_account.storage().get_item(SECRET_KEY_SLOT));
+        dbg!(player_account.storage().get_item(253));
+    }
 
     for (i, player_id) in player_ids.iter().enumerate() {
         let (player_account, _) = client.get_account(*player_id).unwrap();
